@@ -58,7 +58,8 @@ def process_client_message(message, messages_list, client, clients, names):
 def process_message(message, names, listen_socks):
     if message[DESTINATION] in names and names[message[DESTINATION]] in listen_socks:
         send_message(names[message[DESTINATION]], message)
-        logger.info(f'Отправлено сообщение пользователю {message[DESTINATION]} от пользователя {message[SENDER]}.')
+        logger.info(
+            f'Отправлено сообщение пользователю {message[DESTINATION]} от пользователя {message[SENDER]}.')
     elif message[DESTINATION] in names and names[message[DESTINATION]] not in listen_socks:
         raise ConnectionError
     else:
@@ -107,44 +108,52 @@ def main():
     transport.listen(MAX_CONNECTIONS)
     # Основной цикл программы сервера
     while True:
-        # Ждём подключения, если таймаут вышел, ловим исключение.
-        try:
-            client, client_address = transport.accept()
-        except OSError:
-            pass
-        else:
-            logger.info(f'Установлено соедение с ПК {client_address}')
-            clients.append(client)
-
-        recv_data_lst = []
-        send_data_lst = []
-        err_lst = []
-        # Проверяем на наличие ждущих клиентов
-        try:
-            if clients:
-                recv_data_lst, send_data_lst, err_lst = select.select(clients, clients, [], 0)
-        except OSError:
-            pass
-
-        # принимаем сообщения и если ошибка, исключаем клиента.
-        if recv_data_lst:
-            for client_with_message in recv_data_lst:
-                try:
-                    process_client_message(get_message(client_with_message), messages, client_with_message, clients,
-                                           names)
-                except:
-                    logger.info(f'Клиент {client_with_message.getpeername()} отключился от сервера.')
-                    clients.remove(client_with_message)
-
-        # Если есть сообщения, обрабатываем каждое.
-        for i in messages:
+        try:  # Добавил исслючение по пререванию по клавиатуре
+            # Ждём подключения, если таймаут вышел, ловим исключение.
             try:
-                process_message(i, names, send_data_lst)
-            except:
-                logger.info(f'Связь с клиентом с именем {i[DESTINATION]} была потеряна')
-                clients.remove(names[i[DESTINATION]])
-                del names[i[DESTINATION]]
-        messages.clear()
+                client, client_address = transport.accept()
+            except OSError:
+                pass
+            else:
+                logger.info(f'Установлено соедение с ПК {client_address}')
+                clients.append(client)
+
+            recv_data_lst = []
+            send_data_lst = []
+            err_lst = []
+            # Проверяем на наличие ждущих клиентов
+            try:
+                if clients:
+                    recv_data_lst, send_data_lst, err_lst = select.select(
+                        clients, clients, [], 0)
+            except OSError:
+                pass
+
+            # принимаем сообщения и если ошибка, исключаем клиента.
+            if recv_data_lst:
+                for client_with_message in recv_data_lst:
+                    try:
+                        process_client_message(get_message(client_with_message), messages, client_with_message, clients,
+                                               names)
+                    except:
+                        logger.info(
+                            f'Клиент {client_with_message.getpeername()} отключился от сервера.')
+                        clients.remove(client_with_message)
+
+            # Если есть сообщения, обрабатываем каждое.
+            for i in messages:
+                try:
+                    process_message(i, names, send_data_lst)
+                except:
+                    logger.info(
+                        f'Связь с клиентом с именем {i[DESTINATION]} была потеряна')
+                    clients.remove(names[i[DESTINATION]])
+                    del names[i[DESTINATION]]
+            messages.clear()
+        except KeyboardInterrupt:
+            print('Выход')
+            transport.close()
+            break
 
 
 if __name__ == '__main__':
