@@ -1,18 +1,49 @@
 import subprocess
+from time import sleep
+import os
+PROCESS = {}  # Список процессов
 
-process = []
 
-while True:
-    action = input('Выберите действие: q - выход , s - запустить сервер и клиенты, x - закрыть все окна:')
 
-    if action == 'q':
-        break
-    elif action == 's':
-        process.append(subprocess.Popen('python server.py', creationflags=subprocess.CREATE_NEW_CONSOLE))
-        process.append(subprocess.Popen('python client.py -n test1', creationflags=subprocess.CREATE_NEW_CONSOLE))
-        process.append(subprocess.Popen('python client.py -n test2', creationflags=subprocess.CREATE_NEW_CONSOLE))
-        process.append(subprocess.Popen('python client.py -n test3', creationflags=subprocess.CREATE_NEW_CONSOLE))
-    elif action == 'x':
-        while process:
-            victim = process.pop()
-            victim.kill()
+def start_process_server():
+    """Запуск процесса сервера"""
+    if 'server' not in PROCESS:  # Если сервер еще не запущен, запускам его
+        PROCESS['server'] = subprocess.Popen(
+            f'python3 server.py'.split())
+        sleep(1)
+
+
+def start_process_client(user_name="user"):
+    """Запуска процесса клиента
+    Args:
+        user_name (str, optional): [Имя пользователя]. Defaults to "user".
+    """
+
+    if user_name not in PROCESS:  # Если клиент еще не запущен, запускаем клиента
+        PROCESS[user_name] = subprocess.Popen(
+            f'python3 client.py -n {user_name}'.split())
+        sleep(1)
+
+
+def kill_process():
+    """Закрывает все созданные процесс
+    """
+    for name, proc in PROCESS.items():
+        proc.kill()
+
+
+if __name__ == '__main__':
+
+    print(f'{"*"*10}Демонстрация работы чата{"*"*10}')
+    print(f'{"*"*10}для выхода нажмите Ctrl+с{"*"*10}')
+    start_process_server()
+    start_process_client('user1')
+    start_process_client('user2')
+    start_process_client('user3')
+    while True:
+        try:
+            pass
+        except KeyboardInterrupt:  # Обработка прерывания выполнения скрипта
+            break
+    print('Выход')
+    kill_process()
