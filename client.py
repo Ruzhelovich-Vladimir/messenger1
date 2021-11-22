@@ -5,9 +5,10 @@ import threading
 from common.utils import *
 from errors import IncorrectDataRecivedError, ReqFieldMissingError, ServerError
 from decos import log
+from metaclass import ClientVerifier
 
 
-class Client:
+class Client(metaclass=ClientVerifier):
 
     __slots__ = ('logger', 'server_address', 'server_port', 'client_name',
                  'transport')

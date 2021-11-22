@@ -10,14 +10,16 @@ import select
 from common.utils import *
 from decos import log
 
+from descriptors import Port, Host
+from metaclass import ServerVerifier
 
-class Server:
-    """
-    Коласс сервера
-    """
 
-    __slots__ = ('logger', 'listen_address', 'listen_port', 'transport', 'clients', 'messages',
-                 'names', 'receive_data_lst', 'send_data_lst', 'err_lst')
+class Server(metaclass=ServerVerifier):
+    """
+    Класс сервера
+    """
+    listen_port = Port()
+    listen_address = Host()
 
     def __init__(self):
         """ Инициализация сервера """
@@ -66,17 +68,18 @@ class Server:
         """
         parser = argparse.ArgumentParser()
         parser.add_argument('-p', default=DEFAULT_PORT, type=int, nargs='?')
-        parser.add_argument('-a', default='', nargs='?')
+        parser.add_argument('-a', default=DEFAULT_IP_ADDRESS, nargs='?')
         namespace = parser.parse_args(sys.argv[1:])
         listen_address = namespace.a
         listen_port = namespace.p
 
-        # проверка получения корретного номера порта для работы сервера.
-        if not 1023 < listen_port < 65536:
-            self.logger.critical(
-                f'Попытка запуска сервера с указанием неподходящего порта '
-                f'{listen_port}. Допустимы адреса с 1024 до 65535.')
-            exit(1)
+        """ Коммментирую чтобы сработал дискриптор """
+        # # проверка получения корретного номера порта для работы сервера.
+        # if not 1023 < listen_port < 65536:
+        #     self.logger.critical(
+        #         f'Попытка запуска сервера с указанием неподходящего порта '
+        #         f'{listen_port}. Допустимы адреса с 1024 до 65535.')
+        #     exit(1)
 
         return listen_address, listen_port
 

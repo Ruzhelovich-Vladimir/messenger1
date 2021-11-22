@@ -49,6 +49,20 @@ def host_range_ping(start_ip, count):
     return host_ping(result)
 
 
+def is_available_host(host, timeout=3):
+    """
+    Проверка доступности хоста
+    """
+    try:
+        process = Popen(('ping', f'{host}', '-c1',
+                         f'-W{timeout}'), shell=False, stdout=PIPE)
+        process.wait()
+    except:
+        return False
+
+    return process.returncode == 0
+
+
 def host_ping(host_list=[], timeout=3):
     """
     функцию host_ping(), в которой с помощью утилиты ping будет проверяться
@@ -56,25 +70,13 @@ def host_ping(host_list=[], timeout=3):
     сетевой узел должен быть представлен именем хоста или ip-адресом
     """
     result = {}
-
     for host in host_list:
 
-        # Использую в host_range_ping
-        # try:
-        #     _ip_address = ip_address(host)
-        # except ValueError as err:
-        #     pass
-
-        process = Popen(('ping', f'{host}', '-c1',
-                        f'-W{timeout}'), shell=False, stdout=PIPE)
-        process.wait()
-        status = "Reachable" if process.returncode == 0 else 'Unreachable'
-
+        status = "Reachable" if is_available_host(host, timeout) else 'Unreachable'
         if status in result:
             result[status].append(host)
         else:
             result[status] = [host]
-
     return result
 
 
@@ -87,11 +89,14 @@ def host_range_ping_tab(start_ip, count):
 
 if __name__ == '__main__':
 
-    res = host_ping(['192.168.1.1', 'ya.ru', '8.8.8.8',
-                     'localhost', '127.0.0.1', '192.168.0.1', 'google.com'], 1)
+    res = host_ping(['localhost'], 1)
     print(json.dumps(res, indent=4))
 
-    res = host_range_ping('8.8.8.1', 10)
-    print(json.dumps(res, indent=4))
-
-    print(host_range_ping_tab('8.8.8.1', 10))
+    # res = host_ping(['192.168.1.1', 'ya.ru', '8.8.8.8',
+    #                  'localhost', '127.0.0.1', '192.168.0.1', 'google.com'], 1)
+    # print(json.dumps(res, indent=4))
+    #
+    # res = host_range_ping('8.8.8.1', 10)
+    # print(json.dumps(res, indent=4))
+    #
+    # print(host_range_ping_tab('8.8.8.1', 10))
