@@ -505,3 +505,4 @@ FodyWeavers.xsd
 
 *.log
 *.txt
+/server_base.db3
