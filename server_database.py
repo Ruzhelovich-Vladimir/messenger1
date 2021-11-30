@@ -1,10 +1,11 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, Boolean, create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker, Session, configure_mappers
+from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql.functions import now, func
 
 from common.variables import SERVER_DATABASE
 
 Base = declarative_base()
+
 
 class ServerStorage:
 
@@ -31,6 +32,20 @@ class ServerStorage:
             self.last_name = kwargs['last_name'] if 'last_name' in kwargs else None
             self.birthday = kwargs['last_name'] if 'last_name' in kwargs else None
 
+    class UsersMessageHistory(Base):
+        """Статистика по отправки сообщений пользователем"""
+
+        __tablename__ = 'users_message_history'
+
+        id = Column(Integer, primary_key=True)
+        user_id = Column(ForeignKey('users.id'), nullable=True)
+        sent = Column(Integer, default=0)
+        accepted = Column(Integer, default=0)
+
+        def __init__(self, user):
+            self.id = None
+            self.user = user
+
     class UsersEntryHistory(Base):
         """ Таблица истории входа и активных пользователей """
 
@@ -49,11 +64,11 @@ class ServerStorage:
             self.ip_address = kwargs['ip_address'] if 'ip_address' in kwargs else None
             self.port = kwargs['port'] if 'port' in kwargs else None
 
-
     class UsersRelationship(Base):
         """Таблица связей пользователей"""
         
         __tablename__ = 'users_relationship'
+
         id = Column('id', Integer, primary_key=True)
         user_id = Column(ForeignKey('users.id'), nullable=True)
         contact_user_id = Column(ForeignKey('users.id'), nullable=True)
@@ -66,7 +81,9 @@ class ServerStorage:
 
     def __init__(self):
 
-        self.database_engine = create_engine(SERVER_DATABASE, echo=False, pool_recycle=7200)
+        self.database_engine = create_engine(SERVER_DATABASE, echo=False, pool_recycle=7200,
+                                             connect_args={'check_same_thread': False})
+
         Base.metadata.create_all(self.database_engine)
 
         session = sessionmaker(bind=self.database_engine)
@@ -87,6 +104,8 @@ class ServerStorage:
             user = self.Users(username=username, )
             self.session.add(user)
             self.session.commit()
+            user_in_history = self.UsersMessageHistory(user.id)
+            self.session.add(user_in_history)
 
         history = self.UsersEntryHistory(user_id=user.id, ip_address=ip_address, port=port)
         self.session.add(history)
@@ -100,6 +119,16 @@ class ServerStorage:
             update({'active': False, 'logout_time': now()})
         self.session.commit()
 
+    def process_message(self, sender, recipient):
+        """Фиксируем информацию в статистике историии обмена сообщениями"""
+        sender = self.session.query(self.Users).filter_by(name=sender).first().id
+        recipient = self.session.query(self.Users).filter_by(name=recipient).first().id
+        # Запрашиваем строки из истории и увеличиваем счётчики
+        sender_row = self.session.query(self.UsersMessageHistory).filter_by(user=sender).first()
+        sender_row.sent += 1
+        recipient_row = self.session.query(self.UsersMessageHistory).filter_by(user=recipient).first()
+        recipient_row.accepted += 1
+        self.session.commit()
 
     # Функция возвращает список известных пользователей со временем последнего входа.
     def users_list(self):
@@ -121,6 +150,17 @@ class ServerStorage:
             .join(self.UsersEntryHistory)\
             .filter_by(active=True) \
             .order_by('username')
+        # Возвращаем список кортежей
+        return query.all()
+
+    def message_history(self):
+        """Функция возвращает количество переданных и полученных сообщений"""
+        query = self.session.query(
+            self.Users.username,
+            self.Users.last_login,
+            self.UsersMessageHistory.sent,
+            self.UsersMessageHistory.accepted
+        ).join(self.Users)
         # Возвращаем список кортежей
         return query.all()
 
@@ -160,9 +200,3 @@ if __name__ == '__main__':
     print('выводим список известных пользователей')
     for elem in test_db.users_list():
         print(elem)
-
-
-
-
-
-
