@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, Bool
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql.functions import now, func
 
-from common.variables import SERVER_DATABASE
+#from common.variables import SERVER_DATABASE
 
 Base = declarative_base()
 
@@ -42,9 +42,11 @@ class ServerStorage:
         sent = Column(Integer, default=0)
         accepted = Column(Integer, default=0)
 
-        def __init__(self, user):
-            self.id = None
-            self.user = user
+        def __init__(self, user_id, sent=0, accepted=0):
+            self.user_id = user_id
+            self.sent = sent
+            self.accepted = accepted
+
 
     class UsersEntryHistory(Base):
         """ Таблица истории входа и активных пользователей """
@@ -79,9 +81,10 @@ class ServerStorage:
             self.user = kwargs['user_id'] if 'user_id' in kwargs else None  
             self.contact_user_id = kwargs['contact_user_id'] if 'contact_user_id' in kwargs else None
 
-    def __init__(self):
+    def __init__(self, db_path):
 
-        self.database_engine = create_engine(SERVER_DATABASE, echo=False, pool_recycle=7200,
+        print(db_path)
+        self.database_engine = create_engine(f'sqlite:///{db_path}', echo=False, pool_recycle=7200,
                                              connect_args={'check_same_thread': False})
 
         Base.metadata.create_all(self.database_engine)
@@ -121,13 +124,24 @@ class ServerStorage:
 
     def process_message(self, sender, recipient):
         """Фиксируем информацию в статистике историии обмена сообщениями"""
-        sender = self.session.query(self.Users).filter_by(name=sender).first().id
-        recipient = self.session.query(self.Users).filter_by(name=recipient).first().id
+        sender = self.session.query(self.Users).filter_by(username=sender).first().id
+        recipient = self.session.query(self.Users).filter_by(username=recipient).first().id
         # Запрашиваем строки из истории и увеличиваем счётчики
-        sender_row = self.session.query(self.UsersMessageHistory).filter_by(user=sender).first()
-        sender_row.sent += 1
-        recipient_row = self.session.query(self.UsersMessageHistory).filter_by(user=recipient).first()
-        recipient_row.accepted += 1
+        sender_row = self.session.query(self.UsersMessageHistory).filter_by(user_id=sender).first()
+        recipient_row = self.session.query(self.UsersMessageHistory).filter_by(user_id=recipient).first()
+
+        if sender_row:
+            sender_row.sent += 1
+        else:
+            sender_row = self.UsersMessageHistory(user_id=sender, sent=1)
+            self.session.add(sender_row)
+
+        if recipient_row:
+            recipient_row.accepted += 1
+        else:
+            accepted_row = self.UsersMessageHistory(user_id=recipient, accepted=1)
+            self.session.add(accepted_row)
+
         self.session.commit()
 
     # Функция возвращает список известных пользователей со временем последнего входа.
@@ -157,10 +171,13 @@ class ServerStorage:
         """Функция возвращает количество переданных и полученных сообщений"""
         query = self.session.query(
             self.Users.username,
-            self.Users.last_login,
-            self.UsersMessageHistory.sent,
-            self.UsersMessageHistory.accepted
-        ).join(self.Users)
+            func.max(self.UsersEntryHistory.login_time),
+            func.sum(self.UsersMessageHistory.sent),
+            func.sum(self.UsersMessageHistory.accepted)
+            ).join(self.UsersEntryHistory, self.UsersMessageHistory)\
+            .group_by(self.Users.username)\
+            .order_by(self.Users.username)
+
         # Возвращаем список кортежей
         return query.all()
 

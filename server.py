@@ -1,3 +1,5 @@
+import configparser
+import os
 import socket
 import argparse
 import select
@@ -22,17 +24,18 @@ from server_gui import MainWindow, HistoryWindow, gui_create_main_form_model, cr
 new_connection = False
 conflag_lock = threading.Lock()
 
-def arg_parser():
+
+@log
+def arg_parser(default_port, default_address='127.0.0.1'):
     """
     Считывание параметров запуска скрипта
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', default=DEFAULT_PORT, type=int, nargs='?')
-    parser.add_argument('-a', default=DEFAULT_IP_ADDRESS, nargs='?')
+    parser.add_argument('-p', default=default_port, type=int, nargs='?')
+    parser.add_argument('-a', default=default_address, nargs='?')
     namespace = parser.parse_args(sys.argv[1:])
     listen_address = namespace.a
     listen_port = namespace.p
-
     return listen_address, listen_port
 
 
@@ -100,11 +103,6 @@ class Server(threading.Thread, metaclass=ServerVerifier):
 
         # База данных сервера
         self.database = database
-
-    @log
-    def __del__(self):
-        """ Деструктор """
-        self.transport.close()
 
     @log
     def run(self):
@@ -229,52 +227,29 @@ class Server(threading.Thread, metaclass=ServerVerifier):
 
 
 def main():
-    # Загрузка параметров командной строки, если нет параметров, то задаём значения по умоланию.
+    config = configparser.ConfigParser()
+    ini_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),'server.ini')
+    config.read(ini_path)
 
-    # Инициализация базы данных
-    database = ServerStorage()
+    db_path = os.path.join(config['SETTINGS']['Database_path'], config['SETTINGS']['Database_file'])
+    database = ServerStorage(db_path)
 
-    # Создание экземпляра класса - сервера и его запуск:
-    server = Server(arg_parser(), database)
+    listen_address, listen_port = arg_parser(
+        config['SETTINGS']['Default_port'], config['SETTINGS']['Listen_Address'])
+    server = Server((listen_address, listen_port), database)
     server.daemon = True
     server.start()
 
-    # # Основной цикл сервера:
-    # while True:
-    #     command = input('Введите комманду: ')
-    #     if command == 'help':
-    #         print_help()
-    #     elif command == 'exit':
-    #         break
-    #     elif command == 'users':
-    #         for user in sorted(database.users_list()):
-    #             print(f'Пользователь {user[0]}, последний вход: {user[1]}')
-    #     elif command == 'connected':
-    #         for user in sorted(database.active_users_list()):
-    #             print(f'Пользователь {user[0]}, подключен: {user[1]}:{user[2]}, время установки соединения: {user[3]}')
-    #     elif command == 'loghist':
-    #         name = input('Введите имя пользователя для просмотра истории. '
-    #                      'Для вывода всей истории, просто нажмите Enter: ')
-    #         for user in sorted(database.login_history(name)):
-    #             print(f'Пользователь: {user[0]} время входа: {user[1]}. Вход с: {user[2]}:{user[3]}')
-    #     else:
-    #         print('Команда не распознана.')
-    #
-    #         # Таймер, обновляющий список клиентов 1 раз в секунду
-
-    # Создаём графическое окуружение для сервера:
     server_app = QApplication(sys.argv)
     main_window = MainWindow()
 
-    # Инициализируем параметры в окна
     main_window.statusBar().showMessage('server working')
     main_window.active_clients_table.setModel(gui_create_main_form_model(database))
     main_window.active_clients_table.resizeColumnsToContents()
     main_window.active_clients_table.resizeRowsToContents()
 
-   # Функция обновляющяя список подключённых, проверяет флаг подключения, и
-    # если надо обновляет список
     def list_update():
+        """ Функция обновляющяя список подключённых """
         global new_connection
         if new_connection:
             main_window.active_clients_table.setModel(
@@ -284,8 +259,8 @@ def main():
             with conflag_lock:
                 new_connection = False
 
-    # Функция создающяя окно со статистикой клиентов
     def show_statistics():
+        """ Функция создающяя окно со статистикой клиентов """
         global stat_window
         stat_window = HistoryWindow()
         stat_window.history_table.setModel(create_stat_form_model(database))
@@ -293,41 +268,41 @@ def main():
         stat_window.history_table.resizeRowsToContents()
         stat_window.show()
 
-    # # Функция создающяя окно с настройками сервера.
-    # def server_config():
-    #     global config_window
-    #     # Создаём окно и заносим в него текущие параметры
-    #     config_window = ConfigWindow()
-    #     config_window.db_path.insert(config['SETTINGS']['Database_path'])
-    #     config_window.db_file.insert(config['SETTINGS']['Database_file'])
-    #     config_window.port.insert(config['SETTINGS']['Default_port'])
-    #     config_window.ip.insert(config['SETTINGS']['Listen_Address'])
-    #     config_window.save_btn.clicked.connect(save_server_config)
+    def server_config():
+        """ Функция создающяя окно с настройками сервера. """
+        global config_window
+        # Создаём окно и заносим в него текущие параметры
+        config_window = ConfigWindow()
+        config_window.db_path.insert(config['SETTINGS']['Database_path'])
+        config_window.db_file.insert(config['SETTINGS']['Database_file'])
+        config_window.port.insert(config['SETTINGS']['Default_port'])
+        config_window.ip.insert(config['SETTINGS']['Listen_Address'])
+        config_window.save_btn.clicked.connect(save_server_config)
 
     # Функция сохранения настроек
-    # def save_server_config():
-    #     global config_window
-    #     message = QMessageBox()
-    #     config['SETTINGS']['Database_path'] = config_window.db_path.text()
-    #     config['SETTINGS']['Database_file'] = config_window.db_file.text()
-    #     try:
-    #         port = int(config_window.port.text())
-    #     except ValueError:
-    #         message.warning(config_window, 'Ошибка', 'Порт должен быть числом')
-    #     else:
-    #         config['SETTINGS']['Listen_Address'] = config_window.ip.text()
-    #         if 1023 < port < 65536:
-    #             config['SETTINGS']['Default_port'] = str(port)
-    #             print(port)
-    #             with open('server.ini', 'w') as conf:
-    #                 config.write(conf)
-    #                 message.information(
-    #                     config_window, 'OK', 'Настройки успешно сохранены!')
-    #         else:
-    #             message.warning(
-    #                 config_window,
-    #                 'Ошибка',
-    #                 'Порт должен быть от 1024 до 65536')
+    def save_server_config():
+        global config_window
+        message = QMessageBox()
+        config['SETTINGS']['Database_path'] = config_window.db_path.text()
+        config['SETTINGS']['Database_file'] = config_window.db_file.text()
+        try:
+            port = int(config_window.port.text())
+        except ValueError:
+            message.warning(config_window, 'Ошибка', 'Порт должен быть числом')
+        else:
+            config['SETTINGS']['Listen_Address'] = config_window.ip.text()
+            if 1023 < port < 65536:
+                config['SETTINGS']['Default_port'] = str(port)
+                print(port)
+                with open('server.ini', 'w') as conf:
+                    config.write(conf)
+                    message.information(
+                        config_window, 'OK', 'Настройки успешно сохранены!')
+            else:
+                message.warning(
+                    config_window,
+                    'Ошибка',
+                    'Порт должен быть от 1024 до 65536')
 
     # Таймер, обновляющий список клиентов 1 раз в секунду
     timer = QTimer()
@@ -336,8 +311,8 @@ def main():
 
     # Связываем кнопки с процедурами
     main_window.refresh_button.triggered.connect(list_update)
-    # main_window.show_history_button.triggered.connect(show_statistics)
-    # main_window.config_btn.triggered.connect(server_config)
+    main_window.show_history_button.triggered.connect(show_statistics)
+    main_window.config_btn.triggered.connect(server_config)
 
     # Запускаем GUI
     server_app.exec_()
