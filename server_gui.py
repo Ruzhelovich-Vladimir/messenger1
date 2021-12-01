@@ -14,16 +14,16 @@ def gui_create_main_form_model(database):
     list_model.setHorizontalHeaderLabels(['User', 'IP', 'Port', 'Time'])
     for row in list_users:
         user, ip, port, time = row
-        user_field = QStandardItem(user)
-        user_field.setEditable(False)
-        ip_field = QStandardItem(ip)
-        ip_field.setEditable(False)
-        port_field = QStandardItem(str(port))
-        port_field.setEditable(False)
+        user = QStandardItem(user)
+        user.setEditable(False)
+        ip = QStandardItem(ip)
+        ip.setEditable(False)
+        port = QStandardItem(str(port))
+        port.setEditable(False)
         # Уберём милисекунды из строки времени, т.к. такая точность не требуется.
-        time_field = QStandardItem(str(time.replace(microsecond=0)))
-        time_field.setEditable(False)
-        list_model.appendRow([user_field, ip_field, port_field, time_field])
+        time = QStandardItem(str(time.replace(microsecond=0)))
+        time.setEditable(False)
+        list_model.appendRow([user, ip, port, time])
     return list_model
 
 
@@ -35,18 +35,18 @@ def create_stat_form_model(database):
     # Объект модели данных:
     list = QStandardItemModel()
     list.setHorizontalHeaderLabels(
-        ['Имя Клиента', 'Последний раз входил', 'Сообщений отправлено', 'Сообщений получено'])
+        ['User', 'Last login', 'Sent by', 'Received'])
     for row in hist_list:
-        user, last_seen, sent, recvd = row
+        user, last_seen, sent, receive = row
         user = QStandardItem(user)
         user.setEditable(False)
         last_seen = QStandardItem(str(last_seen.replace(microsecond=0)))
         last_seen.setEditable(False)
         sent = QStandardItem(str(sent))
         sent.setEditable(False)
-        recvd = QStandardItem(str(recvd))
-        recvd.setEditable(False)
-        list.appendRow([user, last_seen, sent, recvd])
+        receive = QStandardItem(str(receive))
+        receive.setEditable(False)
+        list.appendRow([user, last_seen, sent, receive])
     return list
 
 
@@ -104,24 +104,24 @@ class HistoryWindow(QDialog):
     def _init_windows_from(self):
         """Настройки окна"""
         self.setWindowTitle('User statics')
-        self.setFixedSize(600, 700)
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setFixedSize(420, 600)
+        self.setAttribute(Qt.WA_DeleteOnClose) # Qt.WA_DeleteOnClose
 
     def _init_status_bar_form(self):
         pass
 
     def _init_toolbar_from(self):
         """Кнапка закрытия окна"""
-        self.close_button = QPushButton('Close', self)
-        self.close_button.move(250, 650)
-        self.close_button.clicked.connect(self.close)
+        # self.close_button = QPushButton('Close', self)
+        # self.close_button.move(10, 10)
+        # self.close_button.clicked.connect(self.close)
+        pass
 
     def _init_data_form(self):
         """ Лист с собственно историей"""
         self.history_table = QTableView(self)
         self.history_table.move(10, 10)
-        self.history_table.setFixedSize(580, 620)
-        self.history_table.setGeometry(QtCore.QRect(100, 100, 100, 100))
+        self.history_table.setFixedSize(400, 580)
 
 
 # Класс окна настроек
@@ -209,7 +209,7 @@ class ConfigWindow(QDialog):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    win = MainWindow()
-    # win = HistoryWindow()
+    #win = MainWindow()
+    win = HistoryWindow()
     win.show()
     sys.exit(app.exec_())

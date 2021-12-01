@@ -336,7 +336,7 @@ def main():
 
     # Связываем кнопки с процедурами
     main_window.refresh_button.triggered.connect(list_update)
-    # main_window.show_history_button.triggered.connect(show_statistics)
+    main_window.show_history_button.triggered.connect(show_statistics)
     # main_window.config_btn.triggered.connect(server_config)
 
     # Запускаем GUI
