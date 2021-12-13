@@ -47,7 +47,6 @@ class ServerStorage:
             self.sent = sent
             self.accepted = accepted
 
-
     class UsersEntryHistory(Base):
         """ Таблица истории входа и активных пользователей """
 
@@ -66,10 +65,10 @@ class ServerStorage:
             self.ip_address = kwargs['ip_address'] if 'ip_address' in kwargs else None
             self.port = kwargs['port'] if 'port' in kwargs else None
 
-    class UsersRelationship(Base):
+    class UsersContacts(Base):
         """Таблица связей пользователей"""
         
-        __tablename__ = 'users_relationship'
+        __tablename__ = 'users_contacts'
 
         id = Column('id', Integer, primary_key=True)
         user_id = Column(ForeignKey('users.id'), nullable=True)
@@ -78,12 +77,11 @@ class ServerStorage:
         active = Column(Boolean, default=True)
 
         def __init__(self, **kwargs):
-            self.user = kwargs['user_id'] if 'user_id' in kwargs else None  
+            self.user_id = kwargs['user_id'] if 'user_id' in kwargs else None
             self.contact_user_id = kwargs['contact_user_id'] if 'contact_user_id' in kwargs else None
 
     def __init__(self, db_path):
 
-        print(db_path)
         self.database_engine = create_engine(f'sqlite:///{db_path}', echo=False, pool_recycle=7200,
                                              connect_args={'check_same_thread': False})
 
@@ -144,6 +142,41 @@ class ServerStorage:
 
         self.session.commit()
 
+    # Функция добавляет контакт для пользователя.
+    def add_contact(self, username, contact):
+        # Получаем ID пользователей
+        user = self.session.query(self.Users).filter_by(username=username).first()
+        contact_user = self.session.query(self.Users).filter_by(username=contact).first()
+
+        # Проверяем что не дубль и что контакт может существовать (полю пользователь мы доверяем)
+        if not user or not contact_user:
+            return
+        if not contact or self.session.query(self.UsersContacts)\
+                .filter_by(user_id=user.id, contact_user_id=contact_user.id).count():
+            return
+
+        # Создаём объект и заносим его в базу
+        contact_row = self.UsersContacts(user_id=user.id, contact_user_id=contact_user.id,)
+        self.session.add(contact_row)
+        self.session.commit()
+
+    # Функция удаляет контакт из базы данных
+    def remove_contact(self, username, contact):
+        # Получаем ID пользователей
+        user = self.session.query(self.Users).filter_by(username=username).first()
+        contact_user = self.session.query(self.Users).filter_by(username=contact).first()
+
+        # Проверяем что контакт может существовать (полю пользователь мы доверяем)
+        if not contact:
+            return
+
+        # Удаляем требуемое
+        self.session.query(self.UsersContacts).filter(
+            self.UsersContacts.user_id == user.id,
+            self.UsersContacts.contact_user_id == contact_user.id
+        ).delete()
+        self.session.commit()
+
     # Функция возвращает список известных пользователей со временем последнего входа.
     def users_list(self):
         query = self.session.query(
@@ -167,20 +200,6 @@ class ServerStorage:
         # Возвращаем список кортежей
         return query.all()
 
-    def message_history(self):
-        """Функция возвращает количество переданных и полученных сообщений"""
-        query = self.session.query(
-            self.Users.username,
-            func.max(self.UsersEntryHistory.login_time),
-            func.sum(self.UsersMessageHistory.sent),
-            func.sum(self.UsersMessageHistory.accepted)
-            ).join(self.UsersEntryHistory, self.UsersMessageHistory)\
-            .group_by(self.Users.username)\
-            .order_by(self.Users.username)
-
-        # Возвращаем список кортежей
-        return query.all()
-
     def login_history(self, username=None):
         """ Функция возвращающая историю входов по пользователю или всем пользователям """
         query = self.session.query(self.Users.username,
@@ -195,14 +214,41 @@ class ServerStorage:
             query = query.filter(self.Users.username == username)
         return query.all()
 
+    # Функция возвращает список контактов пользователя.
+    def get_contacts(self, username):
+        # Запрашивааем указанного пользователя
+        user = self.session.query(self.Users).filter_by(username=username).one()
+
+        # Запрашиваем его список контактов
+        query = self.session.query(self.UsersContacts, self.Users.username). \
+            filter_by(user_id=user.id). \
+            join(self.Users, self.UsersContacts.contact_user_id == self.Users.id)
+        # print(query)
+        # выбираем только имена пользователей и возвращаем их.
+        return [contact[1] for contact in query.all()]
+
+    def message_history(self):
+        """Функция возвращает количество переданных и полученных сообщений"""
+        query = self.session.query(
+            self.Users.username,
+            func.max(self.UsersEntryHistory.login_time),
+            func.sum(self.UsersMessageHistory.sent),
+            func.sum(self.UsersMessageHistory.accepted)
+            ).join(self.UsersEntryHistory, self.UsersMessageHistory)\
+            .group_by(self.Users.username)\
+            .order_by(self.Users.username)
+
+        # Возвращаем список кортежей
+        return query.all()
 
 # Отладка
 if __name__ == '__main__':
-    test_db = ServerStorage()
+    test_db = ServerStorage('test.db3')
 
     print('выполняем подключение пользователя')
     test_db.user_login('client_1', '192.168.1.4', 8888)
     test_db.user_login('client_2', '192.168.1.5', 7777)
+    test_db.user_login('client_3', '192.168.1.5', 3333)
     print('выводим список кортежей - активных пользователей:')
     for elem in test_db.active_users_list():
         print(elem)
@@ -217,3 +263,10 @@ if __name__ == '__main__':
     print('выводим список известных пользователей')
     for elem in test_db.users_list():
         print(elem)
+    test_db.add_contact('client_1', 'client_2')
+    test_db.add_contact('client_1', 'client_3')
+    print('выводим список контактов пользователей')
+    for elem in test_db.get_contacts('client_1'):
+        print(elem)
+
+
