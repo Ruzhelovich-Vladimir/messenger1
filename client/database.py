@@ -75,6 +75,7 @@ class ClientDatabase:
         if contact:
             user_id = self.session.query(self.KnownUsers).filter_by(username=contact).all()[0].id
         self.session.query(self.Contacts).filter_by(user_id=user_id).delete()
+        self.session.commit()
 
     # Функция добавления известных пользователей.
     # Пользователи получаются только с сервера, поэтому таблица очищается.
@@ -114,7 +115,7 @@ class ClientDatabase:
 
     # Функция проверяющяя наличие пользователя контактах
     def check_contact(self, contact):
-        if self.session.query(self.Contacts).filter_by(username=contact).count():
+        if self.session.query(self.Contacts).join(self.KnownUsers).filter(self.KnownUsers.username==contact).count():
             return True
         else:
             return False
@@ -122,12 +123,11 @@ class ClientDatabase:
     # Функция возвращающая историю переписки
     def get_history(self, from_who=None, to_who=None):
 
-        if from_who and to_who:
-            print('Ошибка, данная функция возвращает историю только одного пользователя')
-            return []
+        where_str = ''
+        where_str += f"from_user.username = '{from_who}'" if from_who else ''
+        where_str += ' or ' if from_who and to_who else ''
+        where_str += f"to_user.username = '{to_who}'" if to_who else ''
 
-        print(from_who, to_who)
-        where_str = f"from_user.username = '{from_who}'" if from_who else f"to_user.username = '{to_who}'"
         sql = text(
         f'''
         SELECT DISTINCT
@@ -143,7 +143,8 @@ class ClientDatabase:
         ''')
         query_result = self.session.execute(sql)
 
-        return [(history_row.from_user, history_row.to_user, history_row.message, history_row.datetime)
+        return [(history_row.from_user, history_row.to_user, history_row.message,
+                 datetime.datetime.strptime(history_row.datetime, '%Y-%m-%d %H:%M:%S.%f').replace(microsecond=0))
                 for history_row in query_result]
         # TODO разобраться с ORM, связи с дух таблиц
         # tbl1 = self.KnownUsers.username

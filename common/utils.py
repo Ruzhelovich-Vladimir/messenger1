@@ -6,14 +6,22 @@ sys.path.append('../')
 from decos import log
 
 
+logger = logging.getLogger('utils')
+
 # Утилита приёма и декодирования сообщения
 # принимает байты выдаёт словарь, если приняточто-то другое отдаёт ошибку значения
 @log
 def get_message(client):
     encoded_response = client.recv(MAX_PACKAGE_LENGTH)
+    if not encoded_response:
+        return {}
     if isinstance(encoded_response, bytes):
         json_response = encoded_response.decode(ENCODING)
-        response = json.loads(json_response)
+        response = None
+        try:
+            response = json.loads(json_response)
+        except Exception as err:
+            logger.error(f'Не возможно считать json объект:\n{json_response} - {err}')
         if isinstance(response, dict):
             return response
         else:

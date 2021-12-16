@@ -38,12 +38,12 @@ if __name__ == '__main__':
     print(f'{"*"*10}для выхода нажмите Ctrl+с{"*"*10}')
     start_process_server()
     start_process_client('user1')
-    start_process_client('user2')
-    start_process_client('user3')
-    while True:
-        try:
-            pass
-        except KeyboardInterrupt:  # Обработка прерывания выполнения скрипта
-            break
-    print('Выход')
-    kill_process()
+    # start_process_client('user2')
+    # start_process_client('user3')
+    # while True:
+    #     try:
+    #         pass
+    #     except KeyboardInterrupt:  # Обработка прерывания выполнения скрипта
+    #         break
+    # print('Выход')
+    # kill_process()

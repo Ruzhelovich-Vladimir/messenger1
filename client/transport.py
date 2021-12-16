@@ -97,7 +97,7 @@ class ClientTransport(threading.Thread, QObject):
         elif ACTION in message and message[ACTION] == MESSAGE and SENDER in message and DESTINATION in message \
                 and MESSAGE_TEXT in message and message[DESTINATION] == self.username:
             logger.debug(f'Received message from user: {message[SENDER]}, "{message[MESSAGE_TEXT]}"')
-            self.database.save_message(message[SENDER], 'in', message[MESSAGE_TEXT])
+            self.database.save_message(message[SENDER], self.username, message[MESSAGE_TEXT])
             self.new_message.emit(message[SENDER])
 
     def update_users_and_contact_list(self):
