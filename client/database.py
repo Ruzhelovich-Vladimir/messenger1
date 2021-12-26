@@ -1,11 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, Boolean, create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.sql.functions import now, func
-from common.variables import *
 import datetime
-
-from server_database import Base
-
 Base = declarative_base()
 
 class ClientDatabase:
@@ -14,7 +9,6 @@ class ClientDatabase:
 
         self.database_engine = create_engine(f'sqlite:///client_{username}.db3', echo=False, pool_recycle=7200,
                                              connect_args={'check_same_thread': False})
-
         Base.metadata.create_all(self.database_engine)
 
         session = sessionmaker(bind=self.database_engine)
@@ -63,7 +57,6 @@ class ClientDatabase:
 
     # Функция добавления контактов
     def add_contact(self, contact):
-        print(contact)
         id = self.session.query(self.KnownUsers).filter_by(username=contact).first().id
         if id:
             contact_row = self.Contacts(id)

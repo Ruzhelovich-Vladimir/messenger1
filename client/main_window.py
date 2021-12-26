@@ -1,3 +1,5 @@
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.PublicKey import RSA
 from PyQt5.QtWidgets import QMainWindow, qApp, QMessageBox, QApplication, QListView
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QBrush, QColor
 from PyQt5.QtCore import pyqtSlot, QEvent, Qt
@@ -119,6 +121,25 @@ class ClientMainWindow(QMainWindow):
 
     # Функция устанавливающяя активного собеседника
     def set_active_user(self):
+        # Запрашиваем публичный ключ пользователя и создаём объект шифрования
+        try:
+            self.current_chat_key = self.transport.key_request(
+                self.current_chat)
+            logger.debug(f'Загружен открытый ключ для {self.current_chat}')
+            if self.current_chat_key:
+                self.encryptor = PKCS1_OAEP.new(
+                    RSA.import_key(self.current_chat_key))
+        except (OSError, json.JSONDecodeError):
+            self.current_chat_key = None
+            self.encryptor = None
+            logger.debug(f'Не удалось получить ключ для {self.current_chat}')
+
+        # Если ключа нет то ошибка, что не удалось начать чат с пользователем
+        if not self.current_chat_key:
+            self.messages.warning(
+                self, 'Ошибка', 'Для выбранного пользователя нет ключа шифрования.')
+            return
+
         # Ставим надпись и активируем кнопки
         self.ui.label_new_message.setText(f'Введите сообщенние для {self.current_chat}:')
         self.ui.btn_clear.setDisabled(False)

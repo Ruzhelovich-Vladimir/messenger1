@@ -1,5 +1,8 @@
 import argparse
+import os
 import sys
+
+from Crypto.PublicKey import RSA
 from PyQt5.QtWidgets import QApplication
 
 from common.variables import *
@@ -19,24 +22,46 @@ def arg_parser():
     parser.add_argument('address', default=DEFAULT_IP_ADDRESS, nargs='?')
     parser.add_argument('port', default=DEFAULT_PORT, type=int, nargs='?')
     parser.add_argument('-n', '--name', default=None, nargs='?')
+    parser.add_argument('-p', '--password', default='', nargs='?')
     namespace = parser.parse_args(sys.argv[1:])
     if not 1023 < namespace.port < 65536:
         logger.critical(
             f'Invalid port {namespace.port}. The available value is from 1024 to 65535.')
         exit(1)
-    return namespace.address, namespace.port, namespace.name
+    return namespace.address, namespace.port, namespace.name, namespace.password
+
+def get_user_secuety(client_name):
+
+    # Get security key
+    # Загружаем ключи с файла, если же файла нет, то генерируем новую пару.
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    key_file = os.path.join(dir_path, 'client', '.secrets', f'{client_name}.key')
+    if not os.path.exists(key_file):
+        keys = RSA.generate(2048, os.urandom)
+        with open(key_file, 'wb') as key:
+            key.write(keys.export_key())
+    else:
+        with open(key_file, 'rb') as key:
+            keys = RSA.import_key(key.read())
+
+    logger.debug("Keys successfully loaded.")
+    return keys
 
 
 if __name__ == '__main__':
-    server_address, server_port, client_name = arg_parser()
+
+    # TODO Решить баг с дублирование записей в списке контактов
+    server_address, server_port, client_name, client_passwd = arg_parser()
     client_app = QApplication(sys.argv)
 
-    if not client_name:
+    if not client_name or not client_passwd:
         start_dialog = UserNameDialog()
         client_app.exec_()
 
         if start_dialog.ok_pressed:
             client_name = start_dialog.client_name.text()
+            client_passwd = start_dialog.client_passwd.text()
+            logger.debug(f'Using USERNAME = {client_name}, PASSWD = {client_passwd}.')
             del start_dialog
         else:
             exit(0)
@@ -44,11 +69,13 @@ if __name__ == '__main__':
     logger.info(
         f'Client application started with parameters server: {server_address}:{server_port}, user name: {client_name}')
 
+    keys = get_user_secuety(client_name)
+
     database = ClientDatabase(client_name)
 
     # Start demon
     try:
-        transport = ClientTransport(server_port, server_address, database, client_name)
+        transport = ClientTransport(server_port, server_address, database, client_name, client_passwd,keys)
     except ServerError as error:
         print(error.text)
         exit(1)

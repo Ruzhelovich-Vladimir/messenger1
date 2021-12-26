@@ -1,8 +1,6 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, Boolean, create_engine
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, Boolean, create_engine, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql.functions import now, func
-
-#from common.variables import SERVER_DATABASE
 
 Base = declarative_base()
 
@@ -15,7 +13,8 @@ class ServerStorage:
         __tablename__ = 'users'
         id = Column(Integer, primary_key=True)
         username = Column(String(25), nullable=True, unique=True, index=True)
-        password = Column(String, nullable=True, unique=False)
+        passwd_hash = Column(String)
+        pubkey = Column(Text)
         nick = Column(String(25), nullable=True, unique=False)
         email = Column(String, nullable=True, unique=False)
         first_name = Column(String(25), nullable=True, unique=False)
@@ -31,6 +30,8 @@ class ServerStorage:
             self.first_name = kwargs['first_name'] if 'first_name' in kwargs else None
             self.last_name = kwargs['last_name'] if 'last_name' in kwargs else None
             self.birthday = kwargs['last_name'] if 'last_name' in kwargs else None
+            self.passwd_hash = kwargs['passwd_hash'] if 'passwd_hash' in kwargs else None
+            self.pubkey = kwargs['pubkey'] if 'pubkey' in kwargs else None
 
     class UsersMessageHistory(Base):
         """Статистика по отправки сообщений пользователем"""
@@ -84,44 +85,88 @@ class ServerStorage:
 
         self.database_engine = create_engine(f'sqlite:///{db_path}', echo=False, pool_recycle=7200,
                                              connect_args={'check_same_thread': False})
-
         Base.metadata.create_all(self.database_engine)
 
         session = sessionmaker(bind=self.database_engine)
         self.session = session()
 
+        # Деактивируем всех пользователем
         self.session.query(self.UsersEntryHistory).filter_by(active=True)\
             .update({"active": False, 'logout_time': now()})
         self.session.commit()
 
-    def user_login(self, username, ip_address, port):
-        """Функция выполняющяяся при входе пользователя, записывает в базу факт входа"""
-        print('login:', username, ip_address, port)
+    def user_login(self, username, ip_address, port, key):
+        """Функция выполняющаяся при входе пользователя, записывает в базу факт входа"""
+
         rez = self.session.query(self.Users).filter_by(username=username)
         if rez.count():
             user = rez.first()
             user.last_login = now()
+            if user.pubkey != key:
+                user.pubkey = key
         else:
-            user = self.Users(username=username, )
-            self.session.add(user)
-            self.session.commit()
-            user_in_history = self.UsersMessageHistory(user.id)
-            self.session.add(user_in_history)
+            raise ValueError('User isn`t registered')
 
-        history = self.UsersEntryHistory(user_id=user.id, ip_address=ip_address, port=port)
-        self.session.add(history)
+        new_user_entry_history = self.UsersEntryHistory(user_id=user.id, ip_address=ip_address, port=port)
+        self.session.add(new_user_entry_history)
         self.session.commit()
 
+    def add_user(self, username, passwd_hash):
+        """
+        Метод регистрации пользователя.
+        Принимает имя и хэш пароля, создаёт запись в таблице статистики.
+        """
+        user = self.Users(username=username, passwd_hash=passwd_hash)
+        self.session.add(user)
+        self.session.commit()
+
+    def remove_user(self, username):
+        """ Метод удаляющий пользователя из базы."""
+
+        # Из базы ничего не удаляем, просто помечается как не активный.
+        user = self.session.query(self.Users).filter_by(username=username)
+        user.update({"active": False})
+        user.commit()
+
+        # Решил не деактивировать записи контакта, т.к. активировать запись можно в любой момент,
+        # а состояние восстановить не удастся.
+
+        # Помечаем все записи не активные
+        # contacts = self.session.query(self.UsersContacts).filter_by(contact_user_id=user.id)
+        # contacts.update({"active": False})
+        # contacts.commit()
+        #
+        # contacts = self.session.query(self.UsersContacts).filter_by(user_id=user.id)
+        # contacts.update({"active": False})
+        # contacts.commit()
+
+    def get_hash(self, username):
+        """ Метод получения хэша пароля пользователя. """
+        user = self.session.query(self.Users).filter_by(username=username).first()
+        return user.passwd_hash
+
+    def get_pubkey(self, username):
+        """ Метод получения публичного ключа пользователя. """
+        user = self.session.query(self.Users).filter_by(username=username).first()
+        return user.pubkey
+
+    def check_user(self, username):
+        """ Метод проверяющий существование пользователя. """
+        if self.session.query(self.Users).filter_by(username=username).count():
+            return True
+        else:
+            return False
+
     def user_logout(self, username, ip_address, port):
-        """Функция фиксирующая отключение пользователя по опредёлённому адресу и порту"""
-        print('logout:', username, ip_address, port)
+        """Функция фиксирующая отключение пользователя по определённому адресу и порту"""
+
         user = self.session.query(self.Users).filter_by(username=username).first()
         self.session.query(self.UsersEntryHistory).filter_by(user_id=user.id, ip_address=ip_address, port=port).\
             update({'active': False, 'logout_time': now()})
         self.session.commit()
 
     def process_message(self, sender, recipient):
-        """Фиксируем информацию в статистике историии обмена сообщениями"""
+        """Фиксируем информацию в статистике истёршие обмена сообщениями"""
         sender = self.session.query(self.Users).filter_by(username=sender).first().id
         recipient = self.session.query(self.Users).filter_by(username=recipient).first().id
         # Запрашиваем строки из истории и увеличиваем счётчики
@@ -216,14 +261,14 @@ class ServerStorage:
 
     # Функция возвращает список контактов пользователя.
     def get_contacts(self, username):
-        # Запрашивааем указанного пользователя
+        # Запрашиваем указанного пользователя
         user = self.session.query(self.Users).filter_by(username=username).one()
 
         # Запрашиваем его список контактов
         query = self.session.query(self.UsersContacts, self.Users.username). \
             filter_by(user_id=user.id). \
             join(self.Users, self.UsersContacts.contact_user_id == self.Users.id)
-        # print(query)
+
         # выбираем только имена пользователей и возвращаем их.
         return [contact[1] for contact in query.all()]
 
@@ -241,18 +286,23 @@ class ServerStorage:
         # Возвращаем список кортежей
         return query.all()
 
-# Отладка
+
 if __name__ == '__main__':
     test_db = ServerStorage('test.db3')
 
+    print('Добавляем пользователей в базу')
+    test_db.add_user('client_1', 'key1')
+    test_db.add_user('client_2', 'key2')
+    test_db.add_user('client_3', 'key3')
+
     print('выполняем подключение пользователя')
-    test_db.user_login('client_1', '192.168.1.4', 8888)
-    test_db.user_login('client_2', '192.168.1.5', 7777)
-    test_db.user_login('client_3', '192.168.1.5', 3333)
+    test_db.user_login('client_1', '192.168.1.4', 8888, 'key1')
+    test_db.user_login('client_2', '192.168.1.5', 7777, 'key2')
+    test_db.user_login('client_3', '192.168.1.5', 3333, 'key3')
     print('выводим список кортежей - активных пользователей:')
     for elem in test_db.active_users_list():
         print(elem)
-    print('выполянем отключение пользователя: client_1')
+    print('выполняем отключение пользователя: client_1')
     test_db.user_logout('client_1', '192.168.1.4', 8888)
     print('выводим список активных пользователей:')
     for elem in test_db.active_users_list():
@@ -268,5 +318,3 @@ if __name__ == '__main__':
     print('выводим список контактов пользователей')
     for elem in test_db.get_contacts('client_1'):
         print(elem)
-
-

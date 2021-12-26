@@ -1,8 +1,7 @@
 import subprocess
 from time import sleep
-import os
-PROCESS = {}  # Список процессов
 
+PROCESS = {}  # Список процессов
 
 
 def start_process_server():
@@ -13,7 +12,7 @@ def start_process_server():
         sleep(1)
 
 
-def start_process_client(user_name="user"):
+def start_process_client(user_name="user", password='pass'):
     """Запуска процесса клиента
     Args:
         user_name (str, optional): [Имя пользователя]. Defaults to "user".
@@ -21,7 +20,7 @@ def start_process_client(user_name="user"):
 
     if user_name not in PROCESS:  # Если клиент еще не запущен, запускаем клиента
         PROCESS[user_name] = subprocess.Popen(
-            f'python3 client.py -n {user_name}'.split())
+            f'python3 client.py -n {user_name} -p {password}'.split())
         sleep(1)
 
 
@@ -37,13 +36,13 @@ if __name__ == '__main__':
     print(f'{"*"*10}Демонстрация работы чата{"*"*10}')
     print(f'{"*"*10}для выхода нажмите Ctrl+с{"*"*10}')
     start_process_server()
-    start_process_client('user1')
-    # start_process_client('user2')
+    start_process_client('user1', '1')
+    start_process_client('user2', '1')
     # start_process_client('user3')
-    # while True:
-    #     try:
-    #         pass
-    #     except KeyboardInterrupt:  # Обработка прерывания выполнения скрипта
-    #         break
-    # print('Выход')
-    # kill_process()
+    while True:
+        try:
+            pass
+        except KeyboardInterrupt:  # Обработка прерывания выполнения скрипта
+            break
+    print('Выход')
+    kill_process()
