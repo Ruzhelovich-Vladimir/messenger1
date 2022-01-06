@@ -3,7 +3,6 @@ import os
 import argparse
 
 from PyQt5.QtWidgets import QApplication
-import threading
 
 from common.utils import *
 from server.core import MessageProcessor
@@ -18,6 +17,7 @@ new_connection = False
 global config_window
 global stat_window
 
+
 @log
 def arg_parser(default_port, default_address='127.0.0.1'):
     """
@@ -31,9 +31,10 @@ def arg_parser(default_port, default_address='127.0.0.1'):
     listen_port = namespace.p
     return listen_address, listen_port
 
+
 @log
 def config_load():
-    """ Парсер конфигурационного ini файла. """
+    """ Разбор конфигурационного ini файла. """
     config = configparser.ConfigParser()
     dir_path = os.path.dirname(os.path.realpath(__file__))
     config.read(f"{dir_path}/{'server.ini'}")
@@ -54,11 +55,17 @@ def main():
     # Загрузка файла конфигурации сервера
     config = config_load()
 
-    # Загрузка параметров командной строки, если нет параметров, то задаём значения по умолканию.
-    listen_address, listen_port = arg_parser(config['SETTINGS']['Default_port'], config['SETTINGS']['Listen_Address'])
+    # Загрузка параметров командной строки, если нет параметров, то задаём
+    # значения по умолканию.
+    listen_address, listen_port = arg_parser(
+        config['SETTINGS']['Default_port'],
+        config['SETTINGS']['Listen_Address'])
 
     # Базы данных
-    database = ServerStorage(os.path.join(config['SETTINGS']['Database_path'], config['SETTINGS']['Database_file']))
+    database = ServerStorage(
+        os.path.join(
+            config['SETTINGS']['Database_path'],
+            config['SETTINGS']['Database_file']))
 
     # Создание экземпляра класса - сервера и его запуск:
     server = MessageProcessor((listen_address, listen_port), database)
@@ -68,7 +75,6 @@ def main():
     # Создаём графическое окружение для сервера:
     server_app = QApplication(sys.argv)
     main_window = MainWindow(database, server, config)
-
 
     # Инициализируем параметры в окна
     main_window.statusBar().showMessage('Server Working')

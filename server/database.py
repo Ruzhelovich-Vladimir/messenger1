@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, Boolean, create_engine, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, \
+    Boolean, create_engine, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql.functions import now, func
 
@@ -23,15 +24,24 @@ class ServerStorage:
         active = Column(Boolean, default=True)
 
         def __init__(self, **kwargs):
-            self.username = kwargs['username'] if 'username' in kwargs else None
-            self.password = kwargs['password'] if 'password' in kwargs else None
-            self.nick = kwargs['nick'] if 'nick' in kwargs else None
-            self.email = kwargs['email'] if 'email' in kwargs else None
-            self.first_name = kwargs['first_name'] if 'first_name' in kwargs else None
-            self.last_name = kwargs['last_name'] if 'last_name' in kwargs else None
-            self.birthday = kwargs['last_name'] if 'last_name' in kwargs else None
-            self.passwd_hash = kwargs['passwd_hash'] if 'passwd_hash' in kwargs else None
-            self.pubkey = kwargs['pubkey'] if 'pubkey' in kwargs else None
+            self.username = kwargs['username'] \
+                if 'username' in kwargs else None
+            self.password = kwargs['password'] \
+                if 'password' in kwargs else None
+            self.nick = kwargs['nick'] \
+                if 'nick' in kwargs else None
+            self.email = kwargs['email'] \
+                if 'email' in kwargs else None
+            self.first_name = kwargs['first_name'] \
+                if 'first_name' in kwargs else None
+            self.last_name = kwargs['last_name'] \
+                if 'last_name' in kwargs else None
+            self.birthday = kwargs['last_name'] \
+                if 'last_name' in kwargs else None
+            self.passwd_hash = kwargs['passwd_hash'] \
+                if 'passwd_hash' in kwargs else None
+            self.pubkey = kwargs['pubkey'] \
+                if 'pubkey' in kwargs else None
 
     class UsersMessageHistory(Base):
         """Статистика по отправки сообщений пользователем"""
@@ -63,12 +73,14 @@ class ServerStorage:
 
         def __init__(self, **kwargs):
             self.user_id = kwargs['user_id'] if 'user_id' in kwargs else None
-            self.ip_address = kwargs['ip_address'] if 'ip_address' in kwargs else None
-            self.port = kwargs['port'] if 'port' in kwargs else None
+            self.ip_address = kwargs['ip_address'] \
+                if 'ip_address' in kwargs else None
+            self.port = kwargs['port'] \
+                if 'port' in kwargs else None
 
     class UsersContacts(Base):
         """Таблица связей пользователей"""
-        
+
         __tablename__ = 'users_contacts'
 
         id = Column('id', Integer, primary_key=True)
@@ -79,12 +91,16 @@ class ServerStorage:
 
         def __init__(self, **kwargs):
             self.user_id = kwargs['user_id'] if 'user_id' in kwargs else None
-            self.contact_user_id = kwargs['contact_user_id'] if 'contact_user_id' in kwargs else None
+            self.contact_user_id = kwargs['contact_user_id'] \
+                if 'contact_user_id' in kwargs else None
 
     def __init__(self, db_path):
 
-        self.database_engine = create_engine(f'sqlite:///{db_path}', echo=False, pool_recycle=7200,
-                                             connect_args={'check_same_thread': False})
+        self.database_engine = \
+            create_engine(f'sqlite:///{db_path}',
+                          echo=False,
+                          pool_recycle=7200,
+                          connect_args={'check_same_thread': False})
         Base.metadata.create_all(self.database_engine)
 
         session = sessionmaker(bind=self.database_engine)
@@ -96,7 +112,8 @@ class ServerStorage:
         self.session.commit()
 
     def user_login(self, username, ip_address, port, key):
-        """Функция выполняющаяся при входе пользователя, записывает в базу факт входа"""
+        """Функция выполняющаяся при входе пользователя,
+        записывает в базу факт входа"""
 
         rez = self.session.query(self.Users).filter_by(username=username)
         if rez.count():
@@ -107,7 +124,8 @@ class ServerStorage:
         else:
             raise ValueError('User isn`t registered')
 
-        new_user_entry_history = self.UsersEntryHistory(user_id=user.id, ip_address=ip_address, port=port)
+        new_user_entry_history = self.UsersEntryHistory(
+            user_id=user.id, ip_address=ip_address, port=port)
         self.session.add(new_user_entry_history)
         self.session.commit()
 
@@ -128,26 +146,18 @@ class ServerStorage:
         user.update({"active": False})
         user.commit()
 
-        # Решил не деактивировать записи контакта, т.к. активировать запись можно в любой момент,
-        # а состояние восстановить не удастся.
-
-        # Помечаем все записи не активные
-        # contacts = self.session.query(self.UsersContacts).filter_by(contact_user_id=user.id)
-        # contacts.update({"active": False})
-        # contacts.commit()
-        #
-        # contacts = self.session.query(self.UsersContacts).filter_by(user_id=user.id)
-        # contacts.update({"active": False})
-        # contacts.commit()
-
     def get_hash(self, username):
-        """ Метод получения хэша пароля пользователя. """
-        user = self.session.query(self.Users).filter_by(username=username).first()
+        """ Метод получения кеш-пароля пользователя. """
+        user = self.session.query(
+            self.Users).filter_by(
+            username=username).first()
         return user.passwd_hash
 
     def get_pubkey(self, username):
         """ Метод получения публичного ключа пользователя. """
-        user = self.session.query(self.Users).filter_by(username=username).first()
+        user = self.session.query(
+            self.Users).filter_by(
+            username=username).first()
         return user.pubkey
 
     def check_user(self, username):
@@ -158,20 +168,32 @@ class ServerStorage:
             return False
 
     def user_logout(self, username, ip_address, port):
-        """Функция фиксирующая отключение пользователя по определённому адресу и порту"""
+        """Функция фиксирующая отключение пользователя
+        по определённому адресу и порту"""
 
-        user = self.session.query(self.Users).filter_by(username=username).first()
-        self.session.query(self.UsersEntryHistory).filter_by(user_id=user.id, ip_address=ip_address, port=port).\
+        user = self.session.query(
+            self.Users).filter_by(
+            username=username).first()
+        self.session.query(self.UsersEntryHistory).\
+            filter_by(user_id=user.id, ip_address=ip_address, port=port).\
             update({'active': False, 'logout_time': now()})
         self.session.commit()
 
     def process_message(self, sender, recipient):
         """Фиксируем информацию в статистике истёршие обмена сообщениями"""
-        sender = self.session.query(self.Users).filter_by(username=sender).first().id
-        recipient = self.session.query(self.Users).filter_by(username=recipient).first().id
+        sender = self.session.query(
+            self.Users).filter_by(
+            username=sender).first().id
+        recipient = self.session.query(
+            self.Users).filter_by(
+            username=recipient).first().id
         # Запрашиваем строки из истории и увеличиваем счётчики
-        sender_row = self.session.query(self.UsersMessageHistory).filter_by(user_id=sender).first()
-        recipient_row = self.session.query(self.UsersMessageHistory).filter_by(user_id=recipient).first()
+        sender_row = self.session.query(
+            self.UsersMessageHistory).filter_by(
+            user_id=sender).first()
+        recipient_row = self.session.query(
+            self.UsersMessageHistory).filter_by(
+            user_id=recipient).first()
 
         if sender_row:
             sender_row.sent += 1
@@ -182,7 +204,8 @@ class ServerStorage:
         if recipient_row:
             recipient_row.accepted += 1
         else:
-            accepted_row = self.UsersMessageHistory(user_id=recipient, accepted=1)
+            accepted_row = self.UsersMessageHistory(
+                user_id=recipient, accepted=1)
             self.session.add(accepted_row)
 
         self.session.commit()
@@ -190,28 +213,40 @@ class ServerStorage:
     # Функция добавляет контакт для пользователя.
     def add_contact(self, username, contact):
         # Получаем ID пользователей
-        user = self.session.query(self.Users).filter_by(username=username).first()
-        contact_user = self.session.query(self.Users).filter_by(username=contact).first()
+        user = self.session.query(
+            self.Users).filter_by(
+            username=username).first()
+        contact_user = self.session.query(
+            self.Users).filter_by(
+            username=contact).first()
 
-        # Проверяем что не дубль и что контакт может существовать (полю пользователь мы доверяем)
+        # Проверяем что не дубль и что контакт может существовать (полю
+        # пользователь мы доверяем)
         if not user or not contact_user:
             return
         if not contact or self.session.query(self.UsersContacts)\
-                .filter_by(user_id=user.id, contact_user_id=contact_user.id).count():
+                .filter_by(user_id=user.id, contact_user_id=contact_user.id).\
+                count():
             return
 
         # Создаём объект и заносим его в базу
-        contact_row = self.UsersContacts(user_id=user.id, contact_user_id=contact_user.id,)
+        contact_row = self.UsersContacts(
+            user_id=user.id, contact_user_id=contact_user.id,)
         self.session.add(contact_row)
         self.session.commit()
 
     # Функция удаляет контакт из базы данных
     def remove_contact(self, username, contact):
         # Получаем ID пользователей
-        user = self.session.query(self.Users).filter_by(username=username).first()
-        contact_user = self.session.query(self.Users).filter_by(username=contact).first()
+        user = self.session.query(
+            self.Users).filter_by(
+            username=username).first()
+        contact_user = self.session.query(
+            self.Users).filter_by(
+            username=contact).first()
 
-        # Проверяем что контакт может существовать (полю пользователь мы доверяем)
+        # Проверяем что контакт может существовать (полю пользователь мы
+        # доверяем)
         if not contact:
             return
 
@@ -222,7 +257,8 @@ class ServerStorage:
         ).delete()
         self.session.commit()
 
-    # Функция возвращает список известных пользователей со временем последнего входа.
+    # Функция возвращает список известных пользователей со временем последнего
+    # входа.
     def users_list(self):
         query = self.session.query(
             self.Users.username,
@@ -246,7 +282,8 @@ class ServerStorage:
         return query.all()
 
     def login_history(self, username=None):
-        """ Функция возвращающая историю входов по пользователю или всем пользователям """
+        """ Функция возвращающая историю входов по пользователю или
+        всем пользователям """
         query = self.session.query(self.Users.username,
                                    self.UsersEntryHistory.login_time,
                                    self.UsersEntryHistory.logout_time,
@@ -262,12 +299,15 @@ class ServerStorage:
     # Функция возвращает список контактов пользователя.
     def get_contacts(self, username):
         # Запрашиваем указанного пользователя
-        user = self.session.query(self.Users).filter_by(username=username).one()
+        user = self.session.query(
+            self.Users).filter_by(
+            username=username).one()
 
         # Запрашиваем его список контактов
         query = self.session.query(self.UsersContacts, self.Users.username). \
             filter_by(user_id=user.id). \
-            join(self.Users, self.UsersContacts.contact_user_id == self.Users.id)
+            join(self.Users,
+                 self.UsersContacts.contact_user_id == self.Users.id)
 
         # выбираем только имена пользователей и возвращаем их.
         return [contact[1] for contact in query.all()]
@@ -279,7 +319,7 @@ class ServerStorage:
             func.max(self.UsersEntryHistory.login_time),
             func.sum(self.UsersMessageHistory.sent),
             func.sum(self.UsersMessageHistory.accepted)
-            ).join(self.UsersEntryHistory, self.UsersMessageHistory)\
+        ).join(self.UsersEntryHistory, self.UsersMessageHistory)\
             .group_by(self.Users.username)\
             .order_by(self.Users.username)
 

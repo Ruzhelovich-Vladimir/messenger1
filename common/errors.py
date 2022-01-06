@@ -1,5 +1,5 @@
-# Исключение  - некорректные данные получены от сокета
-class IncorrectDataRecivedError(Exception):
+# Исключение - некорректные данные получены от сокета
+class IncorrectDataReceivedError(Exception):
     def __str__(self):
         return 'Принято некорректное сообщение от удалённого компьютера.'
 
@@ -25,4 +25,5 @@ class ReqFieldMissingError(Exception):
         self.missing_field = missing_field
 
     def __str__(self):
-        return f'В принятом словаре отсутствует обязательное поле {self.missing_field}.'
+        return f'В принятом словаре отсутствует обязательное поле ' \
+               f'{self.missing_field}.'

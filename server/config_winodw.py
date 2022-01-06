@@ -3,7 +3,10 @@
 import os
 import sys
 
-from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QFileDialog, QApplication
+from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, \
+    QFileDialog, QApplication
+
+global dialog
 
 
 class ConfigWindow(QDialog):
@@ -32,25 +35,23 @@ class ConfigWindow(QDialog):
         self.db_path_label.move(10, 10)
         self.db_path_label.setFixedSize(240, 15)
 
-        #  Data base path field
+        #  Database path field
         self.db_path = QLineEdit(self)
         self.db_path.setFixedSize(250, 20)
         self.db_path.move(10, 30)
         self.db_path.setReadOnly(True)
 
-        # Check botton
+        # Check bottom
         self.db_path_select = QPushButton('Choose..', self)
         self.db_path_select.move(275, 28)
-
 
         def open_file_dialog():
             """ Функция обработчик открытия окна выбора папки """
             global dialog
             dialog = QFileDialog(self)
             db_path = dialog.getExistingDirectory()
-            # path = path.replace('/', '\\') # У меня UBUNTU
             if os.path.isdir(db_path):
-                self.db_path.setText(db_path) #insert(path)
+                self.db_path.setText(db_path)
 
         self.db_path_select.clicked.connect(open_file_dialog)
 
@@ -93,10 +94,14 @@ class ConfigWindow(QDialog):
         self.save_btn = QPushButton('Save', self)
         self.save_btn.move(190, 220)
 
-        # Кнапка закрытия окна
+        # Кнопка закрытия окна
         self.close_button = QPushButton('Close', self)
         self.close_button.move(275, 220)
-        self.close_button.clicked.connect(self.close)
+        self.close_button.clicked.connect(self.close_windows)
+
+    def close_windows(self):
+        super().close()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

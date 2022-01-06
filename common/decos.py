@@ -4,19 +4,23 @@ import logging
 
 # метод определения модуля, источника запуска.
 if sys.argv[0].find('client') == -1:
-    #если не клиент то сервер!
+    # если сервер
     logger = logging.getLogger('server')
 else:
-    # ну, раз не сервер, то клиент
+    # если клиент
     logger = logging.getLogger('client')
 
 
 def log(func_to_log):
-    def log_saver(*args , **kwargs):
-        logger.debug(f'Была вызвана функция {func_to_log.__name__} c параметрами {args} , {kwargs}. Вызов из модуля {func_to_log.__module__}')
-        ret = func_to_log(*args , **kwargs)
+    def log_saver(*args, **kwargs):
+        logger.debug(
+            f'Была вызвана функция {func_to_log.__name__} '
+            f'c параметрами {args} , {kwargs}. '
+            f'Вызов из модуля {func_to_log.__module__}')
+        ret = func_to_log(*args, **kwargs)
         return ret
     return log_saver
+
 
 def login_required(func):
     """
@@ -30,7 +34,6 @@ def login_required(func):
 
     def checker(*args, **kwargs):
         # проверяем, что первый аргумент - экземпляр MessageProcessor
-        # Импортить необходимо тут, иначе ошибка рекурсивного импорта.
         from server.core import MessageProcessor
         from common.variables import ACTION, PRESENCE
         if isinstance(args[0], MessageProcessor):
@@ -44,12 +47,12 @@ def login_required(func):
                             found = True
 
             # Теперь надо проверить, что передаваемые аргументы не presence
-            # сообщение. Если presense, то разрешаем
+            # сообщение. Если presence, то разрешаем
             for arg in args:
                 if isinstance(arg, dict):
                     if ACTION in arg and arg[ACTION] == PRESENCE:
                         found = True
-            # Если не не авторизован и не сообщение начала авторизации, то
+            # Если не авторизован и не сообщение начала авторизации, то
             # вызываем исключение.
             if not found:
                 raise TypeError

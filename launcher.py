@@ -16,9 +16,10 @@ def start_process_client(user_name="user", password='pass'):
     """Запуска процесса клиента
     Args:
         user_name (str, optional): [Имя пользователя]. Defaults to "user".
+        password (str, optional): [Пароль пользователя].
     """
 
-    if user_name not in PROCESS:  # Если клиент еще не запущен, запускаем клиента
+    if user_name not in PROCESS:  # Если клиент еще не запущен, запускаем
         PROCESS[user_name] = subprocess.Popen(
             f'python3 client.py -n {user_name} -p {password}'.split())
         sleep(1)

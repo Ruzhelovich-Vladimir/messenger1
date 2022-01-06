@@ -26,26 +26,34 @@ def arg_parser():
     namespace = parser.parse_args(sys.argv[1:])
     if not 1023 < namespace.port < 65536:
         logger.critical(
-            f'Invalid port {namespace.port}. The available value is from 1024 to 65535.')
+            f'Invalid port {namespace.port}. '
+            f'The available value is from 1024 to 65535.')
         exit(1)
-    return namespace.address, namespace.port, namespace.name, namespace.password
+    result = (namespace.address, namespace.port, namespace.name,
+              namespace.password)
+    return result
 
-def get_user_secuety(client_name):
+
+def get_user_security(username):
 
     # Get security key
     # Загружаем ключи с файла, если же файла нет, то генерируем новую пару.
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    key_file = os.path.join(dir_path, 'client', '.secrets', f'{client_name}.key')
+    key_file = os.path.join(
+        dir_path,
+        'client',
+        '.secrets',
+        f'{username}.key')
     if not os.path.exists(key_file):
-        keys = RSA.generate(2048, os.urandom)
+        user_keys = RSA.generate(2048, os.urandom)
         with open(key_file, 'wb') as key:
-            key.write(keys.export_key())
+            key.write(user_keys.export_key())
     else:
         with open(key_file, 'rb') as key:
-            keys = RSA.import_key(key.read())
+            user_keys = RSA.import_key(key.read())
 
     logger.debug("Keys successfully loaded.")
-    return keys
+    return user_keys
 
 
 if __name__ == '__main__':
@@ -61,21 +69,30 @@ if __name__ == '__main__':
         if start_dialog.ok_pressed:
             client_name = start_dialog.client_name.text()
             client_passwd = start_dialog.client_passwd.text()
-            logger.debug(f'Using USERNAME = {client_name}, PASSWD = {client_passwd}.')
+            logger.debug(
+                f'Using USERNAME = {client_name}, PASSWD = {client_passwd}.')
             del start_dialog
         else:
             exit(0)
 
     logger.info(
-        f'Client application started with parameters server: {server_address}:{server_port}, user name: {client_name}')
+        f'Client application started with parameters server: '
+        f'{server_address}:{server_port}, user name: {client_name}')
 
-    keys = get_user_secuety(client_name)
+    keys = get_user_security(client_name)
 
     database = ClientDatabase(client_name)
+    transport = None
 
     # Start demon
     try:
-        transport = ClientTransport(server_port, server_address, database, client_name, client_passwd,keys)
+        transport = ClientTransport(
+            server_port,
+            server_address,
+            database,
+            client_name,
+            client_passwd,
+            keys)
     except ServerError as error:
         print(error.text)
         exit(1)
@@ -85,7 +102,8 @@ if __name__ == '__main__':
     # Start main application
     main_window = ClientMainWindow(database, transport)
     main_window.make_connection(transport)
-    main_window.setWindowTitle(f'Messanger application (alpha release) - {client_name}')
+    main_window.setWindowTitle(
+        f'Messanger application (alpha release) - {client_name}')
     client_app.exec_()
 
     transport.transport_shutdown()

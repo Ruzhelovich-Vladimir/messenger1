@@ -1,11 +1,10 @@
 import sys
 import logging
+from PyQt5.QtWidgets import QDialog, QLabel, QComboBox, QPushButton, \
+    QApplication
+from PyQt5.QtCore import Qt
 
 sys.path.append('../')
-from PyQt5.QtWidgets import QDialog, QLabel, QComboBox, QPushButton, QApplication
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
-
 logger = logging.getLogger('client')
 
 
@@ -35,10 +34,13 @@ class DelContactDialog(QDialog):
         self.btn_cancel = QPushButton('Отмена', self)
         self.btn_cancel.setFixedSize(100, 30)
         self.btn_cancel.move(230, 60)
-        self.btn_cancel.clicked.connect(self.close)
+        self.btn_cancel.clicked.connect(self.close_windows)
 
         # заполнитель контактов для удаления
         self.selector.addItems(sorted(self.database.get_contacts()))
+
+    def close_windows(self):
+        super().close()
 
 
 if __name__ == '__main__':

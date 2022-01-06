@@ -35,6 +35,7 @@ class HistoryWindow(QDialog):
         self.history_table.move(10, 10)
         self.history_table.setFixedSize(400, 580)
 
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     win = HistoryWindow()

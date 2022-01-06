@@ -2,16 +2,23 @@ import sys
 
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QAction, qApp, QTableView
+from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QAction, qApp, \
+    QTableView
 
 from server.add_user import RegisterUser
 from server.config_winodw import ConfigWindow
 from server.remove_user import DelUserDialog
 from server.stat_window import StatWindow
 
+global stat_window
+global config_window
+global reg_window
+global rem_window
+
 
 class MainWindow(QMainWindow):
     """Main window"""
+
     def __init__(self, database, server, config):
         super().__init__()
 
@@ -94,7 +101,7 @@ class MainWindow(QMainWindow):
         self.active_clients_table.resizeRowsToContents()
         return list_model
 
-    def view_statatic_form_model(self):
+    def view_statistic_form_model(self):
         """History connections"""
         # Список записей из базы
         hist_list = self.database.message_history()
@@ -103,7 +110,9 @@ class MainWindow(QMainWindow):
         lst = QStandardItemModel()
         lst.setHorizontalHeaderLabels(
             ['User', 'Last login', 'Sent by', 'Received'])
+
         for row in hist_list:
+
             user, last_seen, sent, receive = row
             user = QStandardItem(user)
             user.setEditable(False)
@@ -114,6 +123,7 @@ class MainWindow(QMainWindow):
             receive = QStandardItem(str(receive))
             receive.setEditable(False)
             lst.appendRow([user, last_seen, sent, receive])
+
         return lst
 
     def show_statistics(self):
@@ -122,7 +132,8 @@ class MainWindow(QMainWindow):
         stat_window = StatWindow(self.database)
         stat_window.show()
 
-    def server_config(self):
+    @staticmethod
+    def server_config():
         """ Функция создающая окно с настройками сервера. """
         global config_window
         # Создаём окно и заносим в него текущие параметры
@@ -143,6 +154,6 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    win = MainWindow()
-    win.show()
+    # win = MainWindow()
+    # win.show()
     sys.exit(app.exec_())

@@ -1,3 +1,5 @@
+from common.errors import ServerError
+from common.utils import *
 import binascii
 import hashlib
 import hmac
@@ -8,9 +10,6 @@ import threading
 from PyQt5.QtCore import pyqtSignal, QObject
 
 sys.path.append('../')
-from common.utils import *
-from common.variables import *
-from common.errors import ServerError
 
 logger = logging.getLogger('client')
 socket_lock = threading.Lock()
@@ -43,7 +42,8 @@ class ClientTransport(threading.Thread, QObject):
         # Получаем хэш пароля
         self.passwd_bytes = self.password.encode('utf-8')
         salt = self.username.lower().encode('utf-8')
-        self.passwd_hash = hashlib.pbkdf2_hmac('sha512', self.passwd_bytes, salt, 10000)
+        self.passwd_hash = hashlib.pbkdf2_hmac(
+            'sha512', self.passwd_bytes, salt, 10000)
         self.passwd_hash_string = binascii.hexlify(self.passwd_hash)
 
         logger.debug(f'Passwd hash ready: {self.passwd_hash_string}')
@@ -56,13 +56,15 @@ class ClientTransport(threading.Thread, QObject):
         self.running = True
 
     def __connection_init(self):
-        """ Initialize the socket (transport) and notify the server about it """
+        """ Initialize the socket (transport)
+        and notify the server about it """
         if not self.__init_transport():
             self.__critical_error('Failed to connect to server')
         logger.debug('The connection to the server is established.')
         try:
             with socket_lock:
-                send_message(self.transport, self.__create_presence())  # Send msg presence
+                send_message(self.transport,
+                             self.__create_presence())  # Send msg presence
                 ans = get_message(self.transport)
                 logger.debug(f'Server response = {ans}.')
 
@@ -72,9 +74,13 @@ class ClientTransport(threading.Thread, QObject):
                     elif ans[RESPONSE] == 511:
                         # If 511 Network Authentication Required then
                         ans_data = ans[DATA]
-                        digest = hmac.new(self.passwd_hash_string, ans_data.encode('utf-8'), 'MD5').digest()
+                        digest = hmac.new(
+                            self.passwd_hash_string,
+                            ans_data.encode('utf-8'),
+                            'MD5').digest()
                         my_ans = RESPONSE_511
-                        my_ans[DATA] = binascii.b2a_base64(digest).decode('ascii')
+                        my_ans[DATA] = binascii.b2a_base64(
+                            digest).decode('ascii')
                         send_message(self.transport, my_ans)
                         ans = get_message(self.transport)
                         self.process_server_ans(ans)
@@ -118,7 +124,8 @@ class ClientTransport(threading.Thread, QObject):
             }
         }
         logger.debug(
-            f'{self.username}: Generated {PRESENCE} message for user {self.username}')
+            f'{self.username}: Generated {PRESENCE} '
+            f'message for user {self.username}')
         return out
 
     def process_server_ans(self, message):
@@ -137,12 +144,21 @@ class ClientTransport(threading.Thread, QObject):
                 self.contacts_list_update()
                 self.message_205.emit()
             else:
-                logger.debug(f'Unknown confirmation code accepted: {message[RESPONSE]}')
-        # Если это сообщение от пользователя, то добавляем в базу, даём сигнал о новом сообщении
-        elif ACTION in message and message[ACTION] == MESSAGE and SENDER in message and DESTINATION in message \
-                and MESSAGE_TEXT in message and message[DESTINATION] == self.username:
-            logger.debug(f'Received message from user: {message[SENDER]}, "{message[MESSAGE_TEXT]}"')
-            self.database.save_message(message[SENDER], self.username, message[MESSAGE_TEXT])
+                logger.debug(
+                    f'Unknown confirmation code accepted: {message[RESPONSE]}')
+        # Если это сообщение от пользователя, то добавляем в базу, даём сигнал
+        # о новом сообщении
+        elif ACTION in message and message[ACTION] == MESSAGE \
+                and SENDER in message and DESTINATION in message \
+                and MESSAGE_TEXT in message \
+                and message[DESTINATION] == self.username:
+            logger.debug(
+                f'Received message from user: {message[SENDER]}, '
+                f'"{message[MESSAGE_TEXT]}"')
+            self.database.save_message(
+                message[SENDER],
+                self.username,
+                message[MESSAGE_TEXT])
             self.new_message.emit(message[SENDER])
 
     def update_users_and_contact_list(self):
@@ -190,7 +206,8 @@ class ClientTransport(threading.Thread, QObject):
         if RESPONSE in ans and ans[RESPONSE] == 202:
             self.database.add_users(ans[LIST_INFO])
         else:
-            logger.error(f'Failed to update known users list ({self.username})')
+            logger.error(
+                f'Failed to update known users list ({self.username})')
 
     def key_request(self, user):
         """ Метод запрашивающий с сервера публичный ключ пользователя. """
@@ -210,20 +227,19 @@ class ClientTransport(threading.Thread, QObject):
 
     def add_contact(self, contact):
         """ Добавление нового контакта """
-        logger.debug(f'Create contact {contact} ({self.username})')
         req = {
             ACTION: ADD_CONTACT,
             TIME: time.time(),
             USER: self.username,
             ACCOUNT_NAME: contact
         }
+        logger.debug(f'Create contact {contact} ({self.username})')
         with socket_lock:
             send_message(self.transport, req)
             self.process_server_ans(get_message(self.transport))
 
     def remove_contact(self, contact):
         """ Удаление контакта """
-
         logger.debug(f'Delete contact {contact} ({self.username})')
         req = {
             ACTION: REMOVE_CONTACT,
@@ -236,7 +252,8 @@ class ClientTransport(threading.Thread, QObject):
             self.process_server_ans(get_message(self.transport))
 
     def transport_shutdown(self):
-        """ Отправка сообщения на сервер об закрытия соединения и выходе клиента"""
+        """ Отправка сообщения на сервер
+        об закрытия соединения и выходе клиента"""
         self.running = False
         message = {
             ACTION: EXIT,
@@ -266,10 +283,12 @@ class ClientTransport(threading.Thread, QObject):
             logger.info(f'Message sent to user {to}')
 
     def run(self):
-        logger.debug('The process of receiving messages from the server has started...')
+        logger.debug(
+            'The process of receiving messages from the server has started...')
         while self.running:
             # Отдыхаем секунду и снова пробуем захватить сокет.
-            # Если не сделать тут задержку, то отправка может достаточно долго ждать освобождения сокета.
+            # Если не сделать тут задержку, то отправка может достаточно долго
+            # ждать освобождения сокета.
             time.sleep(1)
             with socket_lock:
                 try:
@@ -280,12 +299,14 @@ class ClientTransport(threading.Thread, QObject):
                         logger.critical(f'Lost connection to server.')
                         self.running = False
                         self.connection_lost.emit()
-                except (ConnectionError, ConnectionAbortedError, ConnectionResetError, json.JSONDecodeError, TypeError):
+                except (ConnectionError, ConnectionAbortedError,
+                        ConnectionResetError, json.JSONDecodeError, TypeError):
                     logger.critical(f'Lost connection to server.')
                     self.running = False
                     self.connection_lost.emit()
                 else:
-                    logger.debug(f'Received a message from the server: {message}')
+                    logger.debug(
+                        f'Received a message from the server: {message}')
                     self.process_server_ans(message)
                 finally:
                     self.transport.settimeout(5)

@@ -1,5 +1,5 @@
 from common.decos import log
-from common.errors import IncorrectDataRecivedError, NonDictInputError
+from common.errors import IncorrectDataReceivedError, NonDictInputError
 from common.variables import *
 import json
 import sys
@@ -9,7 +9,8 @@ sys.path.append('../')
 logger = logging.getLogger('utils')
 
 # Утилита приёма и декодирования сообщения
-# принимает байты, выдаёт словарь, если принято что-то другое отдаёт ошибку значения
+# принимает байты, выдаёт словарь, если принято что-то другое отдаёт ошибку
+# значения
 
 
 @log
@@ -23,13 +24,14 @@ def get_message(client):
         try:
             response = json.loads(json_response)
         except Exception as err:
-            logger.error(f'Не возможно считать json объект:\n{json_response} - {err}')
+            logger.error(f'Не возможно считать json объект:\n{json_response} '
+                         f'- {err}')
         if isinstance(response, dict):
             return response
         else:
-            raise IncorrectDataRecivedError
+            raise IncorrectDataReceivedError
     else:
-        raise IncorrectDataRecivedError
+        raise IncorrectDataReceivedError
 
 
 # Утилита кодирования и отправки сообщения

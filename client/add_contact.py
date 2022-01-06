@@ -1,16 +1,24 @@
+"""
+Модуль диалога добавления контактов
+"""
+
 import sys
 import logging
 
-sys.path.append('../')
-from PyQt5.QtWidgets import QDialog, QLabel, QComboBox, QPushButton
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtWidgets import QDialog, QLabel, QComboBox, QPushButton
+
+sys.path.append('../')
 
 logger = logging.getLogger('client')
 
 
-# Диалог выбора контакта для добавления
+"""Диалог выбора контакта для добавления"""
+
+
 class AddContactDialog(QDialog):
+    """Диалог выбора контакта для добавления"""
+
     def __init__(self, transport, database):
         super().__init__()
         self.transport = transport
@@ -40,28 +48,31 @@ class AddContactDialog(QDialog):
         self.btn_cancel = QPushButton('Отмена', self)
         self.btn_cancel.setFixedSize(100, 30)
         self.btn_cancel.move(230, 60)
-        self.btn_cancel.clicked.connect(self.close)
+        self.btn_cancel.clicked.connect(self.close_windows)
 
         # Заполняем список возможных контактов
         self.possible_contacts_update()
         # Назначаем действие на кнопку обновить
         self.btn_refresh.clicked.connect(self.update_possible_contacts)
 
-    # Заполняем список возможных контактов разницей между всеми пользователями и
+    def close_windows(self):
+        super().close()
+
     def possible_contacts_update(self):
+        """Заполняем список возможных контактов"""
         self.selector.clear()
         # множества всех контактов и контактов клиента
         contacts_list = set(self.database.get_contacts())
         users_list = set(self.database.get_users())
-        # Удалим сами себя из списка пользователей, чтобы нельзя было добавить самого себя
+        # Удалим сами себя из списка пользователей
         if self.transport.username in users_list:
             users_list.remove(self.transport.username)
         # Добавляем список возможных контактов
         self.selector.addItems(users_list - contacts_list)
 
-    # Обновлялка возможных контактов. Обновляет таблицу известных пользователей,
-    # затем содержимое предполагаемых контактов
+    # Обновляет таблицу известных пользователей
     def update_possible_contacts(self):
+        """Обновляет таблицу известных пользователей"""
         try:
             self.transport.user_list_update()
         except OSError:
