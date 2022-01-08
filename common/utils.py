@@ -1,20 +1,25 @@
-from common.decos import log
+"""
+Другие утилиты
+"""
+
+# from common.decos import log
 from common.errors import IncorrectDataReceivedError, NonDictInputError
 from common.variables import *
 import json
 import sys
 sys.path.append('../')
 
-
 logger = logging.getLogger('utils')
 
-# Утилита приёма и декодирования сообщения
-# принимает байты, выдаёт словарь, если принято что-то другое отдаёт ошибку
-# значения
+# @log
 
 
-@log
 def get_message(client):
+    """
+    Функция принимает сообщения в формате JSON от удалённых компьютеров,
+    декодирует полученное сообщение и проверяет что получен словарь.
+    """
+
     encoded_response = client.recv(MAX_PACKAGE_LENGTH)
     if not encoded_response:
         return {}
@@ -34,10 +39,13 @@ def get_message(client):
         raise IncorrectDataReceivedError
 
 
-# Утилита кодирования и отправки сообщения
-# принимает словарь и отправляет его
-@log
+# @log
 def send_message(sock, message):
+    """
+    Функция отправки словарей через сокет. Кодирует словарь в формат JSON
+    и отправляет через сокет.
+    """
+
     if not isinstance(message, dict):
         raise NonDictInputError
     js_message = json.dumps(message)

@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtWidgets
 
 
 class UiMainClientWindow(object):
-
+    """ Класс основного окна клиента. """
     def __init__(self):
         self.label_contacts = None
         self.central_widget = None

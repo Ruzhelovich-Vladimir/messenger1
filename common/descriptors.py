@@ -9,6 +9,7 @@ from common.host_ping import is_available_host
 
 
 class Port:
+    """ Дескриптор контроля порта """
 
     def __set__(self, instance, value):
         if not 1023 < value < 65536:
@@ -20,6 +21,8 @@ class Port:
 
 
 class Host:
+    """ Дескриптор контроля хоста """
+
     def __set__(self, instance, value):
         if not is_available_host(value):
             raise ValueError("Хост не доступен")

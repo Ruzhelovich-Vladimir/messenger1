@@ -1,3 +1,7 @@
+"""
+Модуль настройки логирования серверного приложения.
+"""
+
 from common.variables import LOGGING_LEVEL
 import os
 import logging.handlers

@@ -57,6 +57,7 @@ class RegisterUser(QDialog):
         self.show()
 
     def close_windows(self):
+        """ Закрытие окна """
         super().close()
 
     def save_data(self):

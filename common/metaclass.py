@@ -2,6 +2,7 @@ import dis
 
 
 class ClientVerifier(type):
+    """ Мета-класс для верификации клиентского приложения  """
 
     def __init__(cls, cls_name, bases, cls_dict):
         methods = []
@@ -36,6 +37,7 @@ class ClientVerifier(type):
 
 
 class ServerVerifier(type):
+    """ Мета-класс для верификации серверного приложения  """
 
     def __init__(cls, cls_name, bases, cls_dict):
         methods = []

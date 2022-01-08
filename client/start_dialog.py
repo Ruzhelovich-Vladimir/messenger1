@@ -33,9 +33,6 @@ class UserNameDialog(QDialog):
         self.btn_cancel = QPushButton('Exit', self)
         self.btn_cancel.move(260, 120)
         self.btn_cancel.clicked.connect(qApp.exit)
-
-
-
         self.show()
 
     def click(self):

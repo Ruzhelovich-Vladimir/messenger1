@@ -8,8 +8,8 @@ sys.path.append('../')
 logger = logging.getLogger('client')
 
 
-# Диалог выбора контакта для удаления
 class DelContactDialog(QDialog):
+    """ Диалог выбора контакта для удаления """
     def __init__(self, database):
         super().__init__()
         self.database = database
@@ -40,6 +40,7 @@ class DelContactDialog(QDialog):
         self.selector.addItems(sorted(self.database.get_contacts()))
 
     def close_windows(self):
+        """Закрытие окна"""
         super().close()
 
 

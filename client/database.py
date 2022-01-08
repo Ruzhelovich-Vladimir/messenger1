@@ -6,6 +6,7 @@ Base = declarative_base()
 
 
 class ClientDatabase:
+    """ Класс структуры данных для клиентского приложения"""
 
     def __init__(self, username):
 
@@ -18,8 +19,8 @@ class ClientDatabase:
         session = sessionmaker(bind=self.database_engine)
         self.session = session()
 
-    # Класс - отображение таблицы известных пользователей.
     class KnownUsers(Base):
+        """ Класс - отображение таблицы пользователей системы """
         __tablename__ = 'known_users'
 
         id = Column(Integer, primary_key=True)
@@ -32,8 +33,8 @@ class ClientDatabase:
         def __init__(self, user):
             self.username = user
 
-    # Класс - отображение таблицы истории сообщений
     class MessageHistory(Base):
+        """ Класс - отображение таблицы истории сообщений """
         __tablename__ = 'message_history'
 
         id = Column(Integer, primary_key=True)
@@ -48,8 +49,8 @@ class ClientDatabase:
             self.message = message
             self.datetime = datetime.datetime.now()
 
-    # Класс - отображение списка контактов
     class Contacts(Base):
+        """ Класс - отображение таблицы контактов """
         __tablename__ = 'contacts'
         id = Column(Integer, primary_key=True)
         user_id = Column(ForeignKey('known_users.id'), nullable=True)
@@ -57,8 +58,8 @@ class ClientDatabase:
         def __init__(self, user_id):
             self.user_id = user_id
 
-    # Функция добавления контактов
     def add_contact(self, contact):
+        """ Функция добавления контактов """
         user_id = self.session.query(self.KnownUsers).\
             filter_by(username=contact).\
             first().id
@@ -67,8 +68,8 @@ class ClientDatabase:
             self.session.add(contact_row)
             self.session.commit()
 
-    # Функция удаления контакта
     def del_contact(self, contact):
+        """ Функция удаления контакта """
         if contact:
             user_id = self.session.query(self.KnownUsers).\
                 filter_by(username=contact).all()[0].id
@@ -76,18 +77,18 @@ class ClientDatabase:
                 filter_by(user_id=user_id).delete()
             self.session.commit()
 
-    # Функция добавления известных пользователей.
-    # Пользователи получаются только с сервера, поэтому таблица очищается.
     def add_users(self, users_list):
+        """ Функция добавления известных пользователей.
+        Пользователи получаются только с сервера, поэтому таблица очищается.
+        """
         self.session.query(self.KnownUsers).delete()
         for user in users_list:
             user_row = self.KnownUsers(user)
             self.session.add(user_row)
         self.session.commit()
 
-    # Функция сохраняющая сообщения
     def save_message(self, from_user, to_user, message):
-
+        """ Функция сохраняющая сообщения """
         from_user_id = self.session.query(self.KnownUsers).\
             filter_by(username=from_user).all()[0].id
         to_user_id = self.session.query(self.KnownUsers).\
@@ -98,38 +99,37 @@ class ClientDatabase:
         self.session.add(message_row)
         self.session.commit()
 
-    # Функция возвращающая контакты
     def get_contacts(self):
+        """ Функция возвращающая контакты """
         # TODO Проверить соединение INNER JOIN
         query = self.session.query(self.KnownUsers.username).\
             join(self.Contacts)
         query_result = query.all()
         return [contact[0] for contact in query_result]
 
-    # Функция возвращающая список известных пользователей
     def get_users(self):
+        """ Функция возвращающая список известных пользователей """
         return [user[0]
                 for user in self.session.query(self.KnownUsers.username).all()]
 
-    # Функция проверяющая наличие пользователя в известных
     def check_user(self, user):
+        """ Функция проверяющая наличие пользователя в известных """
         if self.session.query(self.KnownUsers).\
                 filter_by(username=user).count():
             return True
         else:
             return False
 
-    # Функция проверяющая наличие пользователя контактах
     def check_contact(self, username):
+        """" Функция проверяющая наличие пользователя в известных """
         if self.session.query(self.Contacts).join(self.KnownUsers).\
                 filter(self.KnownUsers.username == username).count():
             return True
         else:
             return False
 
-    # Функция возвращающая историю переписки
     def get_history(self, from_who=None, to_who=None):
-
+        """ Функция возвращающая историю переписки """
         where_str = ''
         where_str += f"from_user.username = '{from_who}'" if from_who else ''
         where_str += ' or ' if from_who and to_who else ''

@@ -1,3 +1,8 @@
+"""
+Модуль декораторов, которые используются в проекте
+"""
+
+
 import socket
 import sys
 import logging
@@ -12,6 +17,8 @@ else:
 
 
 def log(func_to_log):
+    """ Декоратор для логирования функций и процедур """
+
     def log_saver(*args, **kwargs):
         logger.debug(
             f'Была вызвана функция {func_to_log.__name__} '

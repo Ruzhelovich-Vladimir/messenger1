@@ -7,6 +7,7 @@ Base = declarative_base()
 
 
 class ServerStorage:
+    """Хранилище данных для сервера"""
 
     class Users(Base):
         """ Таблица пользователей """
@@ -210,8 +211,8 @@ class ServerStorage:
 
         self.session.commit()
 
-    # Функция добавляет контакт для пользователя.
     def add_contact(self, username, contact):
+        """ Функция добавляет контакт для пользователя. """
         # Получаем ID пользователей
         user = self.session.query(
             self.Users).filter_by(
@@ -235,8 +236,8 @@ class ServerStorage:
         self.session.add(contact_row)
         self.session.commit()
 
-    # Функция удаляет контакт из базы данных
     def remove_contact(self, username, contact):
+        """Функция удаляет контакт из базы данных."""
         # Получаем ID пользователей
         user = self.session.query(
             self.Users).filter_by(
@@ -257,9 +258,9 @@ class ServerStorage:
         ).delete()
         self.session.commit()
 
-    # Функция возвращает список известных пользователей со временем последнего
-    # входа.
     def users_list(self):
+        """ Функция возвращает список известных пользователей со временем
+        последнего входа."""
         query = self.session.query(
             self.Users.username,
             func.max(self.UsersEntryHistory.login_time))\
@@ -296,8 +297,8 @@ class ServerStorage:
             query = query.filter(self.Users.username == username)
         return query.all()
 
-    # Функция возвращает список контактов пользователя.
     def get_contacts(self, username):
+        """Функция возвращает список контактов пользователя."""
         # Запрашиваем указанного пользователя
         user = self.session.query(
             self.Users).filter_by(

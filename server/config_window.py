@@ -20,6 +20,7 @@ class ConfigWindow(QDialog):
         self.show()
 
     def _init_windows_from(self):
+        """ Инициализация формы """
         self.setFixedSize(365, 260)
         self.setWindowTitle('Settings server')
 
@@ -30,7 +31,7 @@ class ConfigWindow(QDialog):
         pass
 
     def _init_data_form(self):
-
+        """ Инициализация данных """
         self.db_path_label = QLabel('Database path: ', self)
         self.db_path_label.move(10, 10)
         self.db_path_label.setFixedSize(240, 15)
@@ -100,6 +101,7 @@ class ConfigWindow(QDialog):
         self.close_button.clicked.connect(self.close_windows)
 
     def close_windows(self):
+        """ Закрытие окна """
         super().close()
 
 

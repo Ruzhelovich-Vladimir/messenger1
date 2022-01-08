@@ -13,11 +13,7 @@ def start_process_server():
 
 
 def start_process_client(user_name="user", password='pass'):
-    """Запуска процесса клиента
-    Args:
-        user_name (str, optional): [Имя пользователя]. Defaults to "user".
-        password (str, optional): [Пароль пользователя].
-    """
+    """ Запуска процесса клиента    """
 
     if user_name not in PROCESS:  # Если клиент еще не запущен, запускаем
         PROCESS[user_name] = subprocess.Popen(

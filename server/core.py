@@ -317,6 +317,7 @@ class MessageProcessor(threading.Thread, metaclass=ServerVerifier):
 
     def send_response_about_error_to_user(
             self, response, ru_text, en_text, sock):
+        """ Отправка сообщения об ошибке пользователю """
         response[ERROR] = ru_text
         try:
             logger.debug(f'{en_text} {response}')
@@ -402,6 +403,7 @@ class MessageProcessor(threading.Thread, metaclass=ServerVerifier):
                 self.remove_client(self.names[client])
 
     def request_public_key(self, client, message):
+        """ Запрос публичного ключа """
         response = RESPONSE_511
         response[DATA] = self.database.get_pubkey(message[ACCOUNT_NAME])
 

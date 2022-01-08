@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QAction, qApp, \
     QTableView
 
 from server.add_user import RegisterUser
-from server.config_winodw import ConfigWindow
+from server.config_window import ConfigWindow
 from server.remove_user import DelUserDialog
 from server.stat_window import StatWindow
 
@@ -17,7 +17,7 @@ global rem_window
 
 
 class MainWindow(QMainWindow):
-    """Main window"""
+    """Класса главного окна"""
 
     def __init__(self, database, server, config):
         super().__init__()
