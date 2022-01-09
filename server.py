@@ -4,6 +4,7 @@ import argparse
 
 from PyQt5.QtWidgets import QApplication
 
+from common.decos import log
 from common.utils import *
 from server.core import MessageProcessor
 
@@ -36,7 +37,8 @@ def arg_parser(default_port, default_address='127.0.0.1'):
 def config_load():
     """ Разбор конфигурационного ini файла. """
     config = configparser.ConfigParser()
-    dir_path = os.path.dirname(os.path.realpath(__file__))
+    #dir_path = os.path.dirname(os.path.realpath(__file__))
+    dir_path = os.getcwd()
     config.read(f"{dir_path}/{'server.ini'}")
     # Если конфиг файл загружен правильно, запускаемся, иначе конфиг по
     # умолчанию.

@@ -59,7 +59,8 @@ class DelUserDialog(QDialog):
             self.config['SETTINGS']['Listen_Address'] = self.ip.text()
             if 1023 < port < 65536:
                 self.config['SETTINGS']['Default_port'] = str(port)
-                dir_path = os.path.dirname(os.path.realpath(__file__))
+                #dir_path = os.path.dirname(os.path.realpath(__file__))
+                dir_path = os.getcwd()
                 dir_path = os.path.join(dir_path, '..')
                 with open(f"{dir_path}/{'server.ini'}", 'w') as conf:
                     self.config.write(conf)

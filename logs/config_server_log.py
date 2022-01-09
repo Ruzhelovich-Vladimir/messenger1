@@ -14,7 +14,8 @@ server_formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(filename)s %(message)s')
 
 # Подготовка имени файла для логирования
-path = os.path.dirname(os.path.abspath(__file__))
+#path = os.path.dirname(os.path.abspath(__file__))
+path = os.getcwd()
 path = os.path.join(path, 'server.log')
 
 # создаём потоки вывода логов

@@ -38,7 +38,8 @@ def get_user_security(username):
 
     # Get security key
     # Загружаем ключи с файла, если же файла нет, то генерируем новую пару.
-    dir_path = os.path.dirname(os.path.realpath(__file__))
+    #dir_path = os.path.dirname(os.path.realpath(__file__))
+    dir_path = os.getcwd()
     key_file = os.path.join(
         dir_path,
         'client',
